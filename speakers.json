@@ -1,4 +1,5 @@
 [
+  { "name": "SoundTouch 30 JMB", "ip": "192.168.0.35" },
   { "name": "SoundTouch 20 JMB", "ip": "192.168.0.14" },
-  { "name": "SoundTouch 30 JMB", "ip": "192.168.0.35" }
+  { "name": "SoundTouch 30 Gruissan", "ip": "192.168.1.100" }
 ]
