@@ -42,6 +42,7 @@ services:
       - NODE_ENV=production
       - TRUST_PROXY=${TRUST_PROXY:-false}   
     volumes:
+      - /home/jean-marc/GitHub/Bose-SoundTouch-Hybrid-2026:/app/config
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
       
@@ -67,4 +68,4 @@ services:
       
       # - /your/actual/absolute/path/here:/app/config
  
- restart: unless-stopped
+    restart: unless-stopped
