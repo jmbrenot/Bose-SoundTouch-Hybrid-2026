@@ -1,0 +1,62 @@
+[
+  {
+    "uuid": "1d086bfe",
+    "slot": 6,
+    "speakerIp": "",
+    "name": "SLEEP",
+    "subtitle": "Local NAS",
+    "uri": "library://radio/1",
+    "image": "http://cdn-profiles.tunein.com/s132812/images/logoq.png?t=3",
+    "type": "radio",
+    "provider": "tunein",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "599a5a9a",
+    "slot": 1,
+    "speakerIp": "",
+    "name": "Flow",
+    "subtitle": "Local NAS • By Deezer",
+    "uri": "library://playlist/29",
+    "image": "https://cdn-images.dzcdn.net/images/cover/4f48976de8ccc51e2906ee4c6ac61b8d/250x250-000000-80-0-0.jpg",
+    "type": "playlist",
+    "provider": "deezer",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "6dd0749d",
+    "slot": 2,
+    "speakerIp": "",
+    "name": "RTL2",
+    "subtitle": "Local NAS",
+    "uri": "library://radio/2",
+    "image": "http://cdn-profiles.tunein.com/s50486/images/logoq.png?t=1",
+    "type": "radio",
+    "provider": "tunein",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  },
+  {
+    "uuid": "08a73fdc",
+    "slot": 2,
+    "speakerIp": "192.168.0.25",
+    "name": "RTL2",
+    "subtitle": "Tunein",
+    "uri": "tunein--69XSTV22://radio/s50486",
+    "image": "http://cdn-profiles.tunein.com/s50486/images/logoq.png?t=1",
+    "type": "radio",
+    "provider": "tunein",
+    "settings": {
+      "shuffle": false,
+      "repeat": "off"
+    }
+  }
+]

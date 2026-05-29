@@ -36,6 +36,8 @@ services:
     
     container_name: bose-soundtouch-hybrid
     network_mode: "host"
+    ports:
+      - 3000:3000 
     environment:
       - NODE_ENV=production
       - TRUST_PROXY=${TRUST_PROXY:-false}   
