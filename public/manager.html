@@ -15,15 +15,16 @@
 
 <div class="container">
   <div class="global-nav">
-    <div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+    <div class="header-brand">
 		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
 		Bose SoundTouch Hybrid
 	</div>
     
 	<div class="nav-center-group">
-        <div class="global-link" onclick="window.location.href='/control.html'" style="cursor:pointer;">Remote Control</div>
-        <div class="global-link active" onclick="window.location.href='/manager.html'" style="cursor:pointer;">Library Manager</div>
-        <div class="global-link" onclick="window.location.href='/admin.html'" style="cursor:pointer;">Speaker Admin</div>
+        <div class="global-link" onclick="window.location.href='control.html'">Remote Control</div>
+        <div class="global-link active" onclick="window.location.href='manager.html'">Library Manager</div>
+        <div class="global-link" onclick="window.location.href='admin.html'">Speaker Admin</div>
+        <div class="global-link nav-hide-mobile" onclick="window.location.href='tools.html'">System Tools</div>
     </div>
     
     <div class="speaker-selector-container">
@@ -80,7 +81,6 @@
 <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 15px; padding: 10px; background: var(--card); border-radius: 8px; border: 1px solid var(--border);">
         <div class="section-title" style="margin: 0; padding: 0; border: none; display: flex; align-items: baseline; gap: 6px; white-space: nowrap;">
             <span>FAVORITES</span>
-            <span style="font-size: 0.75em; color: var(--text-secondary);">(UNASSIGNED TO GLOBAL PRESETS)</span>
         </div>
         
         <div class="fav-controls">
@@ -89,11 +89,15 @@
             <div class="filter-pill fav-pill" onclick="setFavFilter('artist')">Artists</div>
             <div class="filter-pill fav-pill" onclick="setFavFilter('album')">Albums</div>
             <div class="filter-pill fav-pill" onclick="setFavFilter('track')">Tracks</div>
-            <div class="filter-pill fav-pill" onclick="setFavFilter('radio')">Stations</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('radio')">Radio</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('podcast')">Podcasts</div>
+            <div class="filter-pill fav-pill" onclick="setFavFilter('audiobook')">Audiobooks</div>
             
             <select id="fav-provider-filter" class="mini-select" style="max-width: 140px; background-color: var(--bg);" onchange="loadLibrary()">
                 <option value="all">All Providers</option>
             </select>
+
+            <input type="text" id="fav-search" class="mini-select" placeholder="Search favorites..." style="max-width: 160px; background-color: var(--bg);" oninput="handleFavSearchInput()">
         </div>
     </div>
 
@@ -125,7 +129,9 @@
         <div class="filter-pill" onclick="setFilter('artist')">Artists</div>
         <div class="filter-pill" onclick="setFilter('album')">Albums</div>
         <div class="filter-pill" onclick="setFilter('track')">Tracks</div>
-		<div class="filter-pill" id="filter-stations" onclick="setFilter('radio')">Stations</div>
+		<div class="filter-pill" id="filter-radio" onclick="setFilter('radio')" style="display:none">Radio</div>
+        <div class="filter-pill" id="filter-podcast" onclick="setFilter('podcast')" style="display:none">Podcasts</div>
+        <div class="filter-pill" id="filter-audiobook" onclick="setFilter('audiobook')" style="display:none">Audiobooks</div>
         <div class="filter-pill" onclick="setFilter('all')">All</div>
 		<select id="provider-filter" class="mini-select" style="margin-left:auto; display:none; max-width:160px; background-color:var(--card);" onchange="doSearch()">
             <option value="all">All Providers</option>
@@ -134,9 +140,9 @@
       <div class="search-bar">
         <input type="text" id="q" placeholder="Search..." onkeydown="if(event.key==='Enter') doSearch()">
         <select id="limit" onchange="doSearch()">
-            <option value="100" selected>100</option>
-            <option value="500">500</option>
-            <option value="1000">1000</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
         </select>
         <button class="primary" onclick="doSearch()">Go</button>
       </div>
@@ -171,7 +177,7 @@
 
 <div id="modal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-top:0;">Save to Library</h3>
+    <h3 id="modal-title" style="margin-top:0;">Save to Library</h3>
     
     <input type="hidden" id="edit-uuid">
     <input type="hidden" id="edit-uri">
@@ -185,20 +191,26 @@
       <input type="text" id="edit-name">
     </div>
     
-    <div class="form-group">
-      <label>Assign to Slot</label>
-      <select id="edit-slot" onchange="toggleSpeakerDropdown(this.value)">
-          <option value="0">None (Favorite Only)</option>
-          <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
-          <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
-      </select>
+    <div class="check-row" id="row-assign-preset" style="margin-bottom:10px;">
+        <input type="checkbox" id="edit-assign-preset" onchange="togglePresetAssignFields(this.checked)">
+        <label id="label-assign-preset" style="display:inline; margin-left:8px;">Assign to a Preset Button</label>
     </div>
-    
-    <div class="form-group" id="group-edit-speaker">
-      <label id="label-edit-speaker">Target Speaker</label>
-      <select id="edit-speaker" class="mini-select" style="width: 100%;">
-          <option value="">Global (All Speakers)</option>
-      </select>
+
+    <div id="preset-assign-fields" style="display:none;">
+      <div class="form-group" id="group-edit-speaker">
+        <label id="label-edit-speaker">Target Speaker</label>
+        <select id="edit-speaker" class="mini-select" style="width: 100%;" onchange="handleTargetSpeakerChange()">
+            <option value="">Global (All Speakers)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Assign to Slot</label>
+        <select id="edit-slot">
+            <option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option>
+            <option value="4">Preset 4</option><option value="5">Preset 5</option><option value="6">Preset 6</option>
+        </select>
+      </div>
     </div>
     
     <label style="margin-top:15px; display:block; margin-bottom:5px;">Playback Options</label>
@@ -216,7 +228,7 @@
     
     <div style="display:flex; justify-content:flex-end; gap:10px">
       <button class="btn-sm" onclick="closeModal()">Cancel</button>
-      <button class="primary" onclick="saveItem()">Save</button>
+      <button class="primary" id="modal-save-btn" onclick="saveItem(this)">Save</button>
     </div>
   </div>
 </div>
@@ -231,34 +243,120 @@
 
 <script>
   // --- CONSTANTS & CONFIG ---
-  
+
   // State management for the current view and search filters
-  let globalProviders = [];  
-  let state = { source: 'spotify', filter: 'playlist', tab: 'library', favFilter: 'all' }; 
+  let globalProviders = [];
+  let state = {
+      source: 'global',
+      filter: 'playlist',
+      tab: 'library',
+      favFilter: 'all'
+  };
   let selectedUuid = null;
   let npInterval = null;
-  
+  let currentSearchOrder = []; // populated from settings on load
+  let extendedPresetsEnabled = false;
+  let libraryItems = []; // last-fetched library, kept for the edit modal's slot-assigned/empty labels
+
   // --- THEME MANAGEMENT ---
   // Applies the theme immediately to prevent flash of unstyled content
   function applyTheme() {
       const saved = localStorage.getItem('theme');
-      if (saved === 'light') document.body.classList.add('light-mode');
-      else document.body.classList.remove('light-mode');
-  } 
+      if (saved === 'light')
+          document.body.classList.add('light-mode');
+      else
+          document.body.classList.remove('light-mode');
+  }
   applyTheme();
   // Listens for theme changes in other tabs to sync immediately.
-  window.addEventListener('storage', (e) => { if (e.key === 'theme') applyTheme(); });
+  window.addEventListener('storage', (e) => {
+      if (e.key === 'theme')
+          applyTheme();
+  });
+
+  // --- FETCH GLOBAL SETTINGS ---
+  async function loadUserPreferences() {
+      try {
+          const settings = await api('api/admin/settings');
+          if (settings) extendedPresetsEnabled = settings.doubleTapPresets === true;
+          if (settings && Array.isArray(settings.searchMenuOrder) && settings.searchMenuOrder.length > 0) {
+              currentSearchOrder = settings.searchMenuOrder;
+          }
+      } catch (e) {
+          console.error("Failed to load global search order from server. Using defaults.", e);
+      }
+  }
+
+  function updateSlotDropdown() {
+      const sel = document.getElementById('edit-slot');
+      if (!sel) return;
+      // Remove any previously injected extended options
+      Array.from(sel.options).forEach(o => { if (parseInt(o.value) > 6) sel.removeChild(o); });
+      if (extendedPresetsEnabled) {
+          [11, 22, 33, 44, 55, 66].forEach(val => {
+              const o = document.createElement('option');
+              o.value = val;
+              sel.appendChild(o);
+          });
+      }
+      refreshSlotLabels();
+  }
+
+  // Labels every real preset option (value > 0) with a bit of the assigned item's
+  // name, or leaves it plain (just the number) if the slot is empty — same "N ·
+  // Name" format as the descriptive preset buttons on control.html, for consistency
+  // between the two surfaces. Assignment scope depends on whichever speaker is
+  // currently selected in Target Speaker (global vs a specific speaker are different
+  // slots), so this re-runs on that dropdown's onchange too, not just once when the
+  // modal opens. Truncated short to keep the dropdown's rendered width stable — the
+  // closed <select> always clips to its own CSS width regardless of text length, but
+  // a long option can still widen the open popup in some browsers.
+  function refreshSlotLabels() {
+      const sel = document.getElementById('edit-slot');
+      const speakerSel = document.getElementById('edit-speaker');
+      if (!sel) return;
+      const scope = speakerSel ? speakerSel.value : '';
+      const maxChars = 30;
+      Array.from(sel.options).forEach(o => {
+          const val = parseInt(o.value);
+          if (!val) return; // skip "None (Favorite Only / Unassign)"
+          const item = libraryItems.find(i => i.slot === val && (i.speakerIp || '') === scope);
+          if (!item) {
+              o.textContent = `${val}`;
+              return;
+          }
+          const name = item.name || '';
+          const short = name.length > maxChars ? name.slice(0, maxChars) + '…' : name;
+          o.textContent = `${val} · ${short}`;
+      });
+  }
+
+  // Fires whenever Target Speaker changes. Refreshes the slot labels for the new
+  // scope, then repositions Assign to Slot to match: if this same content (by uri)
+  // is already on a preset for the newly selected speaker, jump straight to that
+  // slot; otherwise reset to Preset 1 rather than leaving whatever slot number was
+  // showing for the *previous* speaker, which wouldn't mean anything here.
+  function handleTargetSpeakerChange() {
+      refreshSlotLabels();
+      const uri = document.getElementById('edit-uri').value;
+      const scope = document.getElementById('edit-speaker').value;
+      const match = libraryItems.find(i => i.uri === uri && i.slot > 0 && (i.speakerIp || '') === scope);
+      document.getElementById('edit-slot').value = match ? match.slot : 1;
+  }
 
   // --- INITIALIZATION ---
-  window.onload = function() { 
-      buildSearchMenu();
-	  loadProviders().then(() => loadLibrary()); // <-- NEW: Load providers BEFORE library	  
-      fetchSpeakers(); 
+  window.onload = async function () {
+      await loadUserPreferences(); // 1. Wait for server settings FIRST
+      updateSlotDropdown();
+      buildSearchMenu(); // 2. Draw the menu using those settings
+      loadProviders().then(() => loadLibrary());
+      fetchSpeakers();
   }
-  
-async function loadProviders() {
-      const data = await api('/api/manager/providers');
-      if (Array.isArray(data)) globalProviders = data;
+
+  async function loadProviders() {
+      const data = await api('api/manager/providers');
+      if (Array.isArray(data))
+          globalProviders = data;
 
       // Populate Search Dropdown (Show all available MA providers)
       const select = document.getElementById('provider-filter');
@@ -271,45 +369,40 @@ async function loadProviders() {
       }
   }
 
-
   function setFavFilter(f) {
       state.favFilter = f;
       document.querySelectorAll('.fav-pill').forEach(b => b.classList.remove('active'));
       const btn = document.querySelector(`.fav-pill[onclick="setFavFilter('${f}')"]`);
-      if(btn) btn.classList.add('active');
+      if (btn)
+          btn.classList.add('active');
       loadLibrary(); // Re-render favorites
-  }  
-  
-  
-// --- DYNAMIC SEARCH MENU LOGIC ---
-  const SOURCE_BUTTON_TEMPLATES = {
-      'spotify': `<button class="source-btn" onclick="setSource('spotify')"><img src="images/spotify_icon.png" alt="Spotify"> Spotify</button>`,
-      'radio': `<button class="source-btn" onclick="setSource('radio')"><img src="images/TuneIn_icon.png" alt="Radio"> Radio</button>`,
-      'nas': `<button class="source-btn" onclick="setSource('nas')"><img src="images/nas_icon.png" alt="NAS"> Local NAS</button>`,
-      'global': `<button class="source-btn" onclick="setSource('global')"><span style="font-size:1.2em;">🌍</span> Global</button>`
-  };
+  }
 
+  // Debounced so typing doesn't fire a full library re-fetch on every keystroke —
+  // only once 250ms have passed since the last one.
+  let favSearchDebounce = null;
+  function handleFavSearchInput() {
+      clearTimeout(favSearchDebounce);
+      favSearchDebounce = setTimeout(loadLibrary, 250);
+  }
+
+  // --- DYNAMIC SEARCH MENU LOGIC ---
   function buildSearchMenu() {
-      // 1. Check local storage for user preference
-      const savedOrder = localStorage.getItem('bose_search_order');
-      const order = savedOrder ? JSON.parse(savedOrder) : ['global','radio', 'nas','spotify' ]; // Your correct default
-
       const container = document.getElementById('dynamic-source-row');
-      let html = '';
 
-      // 2. Build the HTML string based on the array order
-      order.forEach(sourceKey => {
-          if (SOURCE_BUTTON_TEMPLATES[sourceKey]) {
-              html += SOURCE_BUTTON_TEMPLATES[sourceKey];
-          }
-      });
+      // Only render enabled tabs
+      const visibleTabs = currentSearchOrder.filter(e => e.enabled !== false);
 
-      // 3. Inject it into the page
-      container.innerHTML = html;
+      container.innerHTML = visibleTabs.map(entry => {
+          const iconHtml = entry.key === 'global'
+              ? `<span style="font-size:1.2em;">🌍</span>`
+              : `<img src="${entry.icon || 'images/ma_icon.png'}" alt="${entry.name}" onerror="this.src='images/ma_icon.png'" style="height:16px; width:auto; object-fit:contain;">`;
+          return `<button class="source-btn" onclick="setSource('${entry.key}')">${iconHtml} ${entry.name}</button>`;
+      }).join('');
 
-      // 4. Automatically highlight the first item in the list
-      if (order.length > 0) {
-          setSource(order[0]); 
+      // Activate the first visible tab
+      if (visibleTabs.length > 0) {
+          setSource(visibleTabs[0].key);
       }
   }
 
@@ -319,13 +412,17 @@ async function loadProviders() {
   async function api(url, options = {}) {
       try {
           const res = await fetch(url, {
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                  'Content-Type': 'application/json'
+              },
               ...options
           });
           return await res.json();
       } catch (e) {
           console.error("API Error:", e);
-          return { error: e.message };
+          return {
+              error: e.message
+          };
       }
   }
 
@@ -333,81 +430,93 @@ async function loadProviders() {
   // Fetches speakers from Mass and Status endpoints.
   // Sorts based on backend confign order (speakers.json).
   // Implements logic to Auto-Select a playing speaker (Priority A/B/C).
-// --- CORE LOGIC: SPEAKER SELECTION ---
- async function fetchSpeakers() {
+  // --- CORE LOGIC: SPEAKER SELECTION ---
+  async function fetchSpeakers() {
       const select = document.getElementById('global-speaker');
       try {
           const [maPlayers, stDevices] = await Promise.all([
-              api('/api/manager/players'),
-              api('/api/status')
-          ]);
+                      api('api/manager/players'),
+                      api('api/status')
+                  ]);
 
-          if(!stDevices || !stDevices.length) { select.innerHTML = '<option value="">No Speakers</option>'; return; }
-          
+          if (!stDevices || !stDevices.length) {
+              select.innerHTML = '<option value="">No Speakers</option>';
+              return;
+          }
+
           // 1. OUTER JOIN: Uses stDevices (speakers.json) as the master list.
           const options = stDevices.map(d => {
               const p = maPlayers ? maPlayers.find(mp => mp.ip === d.ip) : null;
-              
+
               const isPlaying = (d.playStatus === 'PLAY_STATE' || d.playStatus === 'BUFFERING_STATE');
               const isOffline = !d.online;
-              const isMissingFromMass = !p; 
-              
+              const isMissingFromMass = !p;
+
               let icon = '';
               let colorClass = '';
-              
+
               // Determine Icons & Classes
               if (isOffline) {
                   icon = ' 🔴';
-                  colorClass = 'class="status-offline"'; 
+                  colorClass = 'class="status-offline"';
               } else if (isMissingFromMass) {
-                  icon = ' 🔇'; 
-                  colorClass = 'class="status-missing"'; 
+                  icon = ' 🔇';
+                  colorClass = 'class="status-missing"';
               } else if (isPlaying) {
                   icon = ' 🎵';
               }
-              
+
               const finalLabel = `${d.name}${icon}`;
-              
+
               // --- THE FILTERS ---
-              const playDisabledAttr = (isOffline || isMissingFromMass) ? `disabled ${colorClass}` : '';
-              const playValue = p ? p.id : ''; 
+              const isStereoRight = (d.stereoRole === 'RIGHT');
+              let playDisabledAttr = '';
+              if (isOffline || isMissingFromMass) {
+                  playDisabledAttr = `disabled ${colorClass}`;
+              } else if (isStereoRight) {
+                  playDisabledAttr = `disabled style="color: var(--text-secondary); font-style: italic;"`;
+              }
+
+              const playValue = p ? p.id : '';
               const editStyleAttr = colorClass ? `${colorClass}` : '';
-              
+
               return {
                   htmlId: `<option value="${playValue}" data-ip="${d.ip}" data-playing="${isPlaying}" ${playDisabledAttr}>${finalLabel}</option>`,
-                  htmlIp: `<option value="${d.ip}" ${editStyleAttr}>${finalLabel}</option>`, 
+                  htmlIp: `<option value="${d.ip}" ${editStyleAttr}>${finalLabel}</option>`,
                   isPlaying: isPlaying,
                   id: playValue,
-                  isPlayable: (!isOffline && !isMissingFromMass)
+                  isPlayable: (!isOffline && !isMissingFromMass && !isStereoRight)
               };
           });
 
           select.innerHTML = options.length ? options.map(o => o.htmlId).join('') : '<option value="">No Configured Speakers Found</option>';
-          
+
           const ipOptionsHtml = options.map(o => o.htmlIp).join('');
-          
+
           const viewFilter = document.getElementById('preset-view-filter');
           if (viewFilter) {
               const currentVal = viewFilter.value;
               viewFilter.innerHTML = `<option value="">Global (Default)</option>${ipOptionsHtml}`;
-              if (currentVal) viewFilter.value = currentVal;
+              if (currentVal)
+                  viewFilter.value = currentVal;
           }
-          
+
           const editFilter = document.getElementById('edit-speaker');
           if (editFilter) {
               const currentEditVal = editFilter.value;
               editFilter.innerHTML = `<option value="">Global (All Speakers)</option>${ipOptionsHtml}`;
-              if (currentEditVal) editFilter.value = currentEditVal;
+              if (currentEditVal)
+                  editFilter.value = currentEditVal;
           }
-          
+
           // 2. AUTO-SELECT LOGIC
           const playableOptions = options.filter(o => o.isPlayable);
           const activeSpeaker = playableOptions.find(o => o.isPlaying);
-          
+
           if (activeSpeaker) {
               select.value = activeSpeaker.id;
               saveSpeakerSelection();
-              switchTab('nowplaying'); 
+              switchTab('nowplaying');
           } else {
               const saved = localStorage.getItem('bose_active_speaker');
               if (saved && Array.from(select.options).some(o => o.value === saved && !o.disabled)) {
@@ -420,89 +529,130 @@ async function loadProviders() {
                   }
               }
           }
-          
-          if (state.tab === 'nowplaying') loadNowPlaying();
 
-      } catch(e) { 
-          select.innerHTML = '<option>Error Loading</option>'; 
+          if (state.tab === 'nowplaying')
+              loadNowPlaying();
+
+      } catch (e) {
+          select.innerHTML = '<option>Error Loading</option>';
       }
   }
 
-  function saveSpeakerSelection() { 
-      localStorage.setItem('bose_active_speaker', document.getElementById('global-speaker').value); 
+  function saveSpeakerSelection() {
+      localStorage.setItem('bose_active_speaker', document.getElementById('global-speaker').value);
   }
 
   // Called when user manually changes the dropdown.
   function handleSpeakerChange() {
-      saveSpeakerSelection(); 
+      saveSpeakerSelection();
       // If viewing the Now Playing tab, refresh immediately to show the new speaker's status.
-      if(state.tab === 'nowplaying') loadNowPlaying();
+      if (state.tab === 'nowplaying')
+          loadNowPlaying();
   }
 
   // --- TAB NAVIGATION ---
   // Handles switching between Library, Now Playing, Recents,Search, and custom views.
   function switchTab(t) {
-    state.tab = t;
-    
-	// Hide all tabs
-    ['library', 'nowplaying', 'recents', 'search', 'custom'].forEach(tab => {
-        document.getElementById('tab-' + tab).style.display = 'none';
-    });
-	
-    // Show active tab
-    document.getElementById('tab-' + t).style.display = 'block';
-    
-    // Update button active states
-    document.querySelectorAll('.nav-btn').forEach(b => {
-        if(b.dataset.tab === t) b.classList.add('active');
-        else b.classList.remove('active');
-    });
+      state.tab = t;
 
-    // Update Label UI (Changes color to indicate Now Playing mode)
-    const label = document.getElementById('play-on-label');
-    if (t === 'nowplaying') {
-        label.innerText = "Now Playing On:";
-        label.style.color = "var(--accent)";
-        startNpPolling();
-    } else {
-        label.innerText = "Play On:";
-        label.style.color = "";
-        stopNpPolling();
-    }
+      // Hide all tabs
+      ['library', 'nowplaying', 'recents', 'search', 'custom'].forEach(tab => {
+          document.getElementById('tab-' + tab).style.display = 'none';
+      });
 
-    // Refresh Data for specific tabs
-    if(t === 'library') loadLibrary();
-    if(t === 'recents') loadRecents();
-	if(t === 'custom') loadCustomHistory(); 
+      // Show active tab
+      document.getElementById('tab-' + t).style.display = 'block';
+
+      // Update button active states
+      document.querySelectorAll('.nav-btn').forEach(b => {
+          if (b.dataset.tab === t)
+              b.classList.add('active');
+          else
+              b.classList.remove('active');
+      });
+
+      // Update Label UI (Changes color to indicate Now Playing mode)
+      const label = document.getElementById('play-on-label');
+      if (t === 'nowplaying') {
+          label.innerText = "Now Playing On:";
+          label.style.color = "var(--accent)";
+          startNpPolling();
+      } else {
+          label.innerText = "Play On:";
+          label.style.color = "";
+          stopNpPolling();
+      }
+
+      // Refresh Data for specific tabs
+      if (t === 'library')
+          loadLibrary();
+      if (t === 'recents')
+          loadRecents();
+      if (t === 'custom')
+          loadCustomHistory();
   }
 
-// --- NOW PLAYING POLLING ---
+  // --- NOW PLAYING POLLING ---
   // Starts the poller only when the "Now Playing" tab is active to save resources.
-  
+
   let lastSeenPosition = -1;
   let lastSeenTrack = "";
   let positionAnchorTime = Date.now();
   let localTicker = null;
   let lastKnownDevice = null;
+  let anchorRestored = false;
+
+  // The anchor above is what lets the 1-second UI ticker fake smooth playback
+  // progress between real Bose position updates (which go quiet for long
+  // stretches during MASS-driven gapless streams). It's just page-scoped JS
+  // state, so a full navigation to Remote Control and back would otherwise
+  // wipe it and resample whatever stale position Bose last actually pushed.
+  // Persisting it to sessionStorage lets the ticker pick up exactly where it
+  // left off instead of visibly jumping back to that stale value.
+  const NP_ANCHOR_KEY = 'npAnchorState';
+
+  function saveNpAnchor(ip) {
+      try {
+          sessionStorage.setItem(NP_ANCHOR_KEY, JSON.stringify({
+              ip, track: lastSeenTrack, position: lastSeenPosition, anchorTime: positionAnchorTime
+          }));
+      } catch (e) {}
+  }
+
+  function restoreNpAnchor(ip) {
+      try {
+          const saved = JSON.parse(sessionStorage.getItem(NP_ANCHOR_KEY) || 'null');
+          if (saved && saved.ip === ip) {
+              lastSeenPosition = saved.position;
+              lastSeenTrack = saved.track;
+              positionAnchorTime = saved.anchorTime;
+          }
+      } catch (e) {}
+  }
 
   function startNpPolling() {
-      if(npInterval) clearInterval(npInterval);
-      if(localTicker) clearInterval(localTicker);
-      
+      if (npInterval)
+          clearInterval(npInterval);
+      if (localTicker)
+          clearInterval(localTicker);
+
       loadNowPlaying();
-      
+
       // 📡 NETWORK POLLING: Stays at 2.5 seconds
-      npInterval = setInterval(loadNowPlaying, 2500); 
-      
+      npInterval = setInterval(loadNowPlaying, 2500);
+
       // ⏱️ UI TICKER: Updates the screen every 1 second
       localTicker = setInterval(() => {
-          if (lastKnownDevice) updateNpUI(lastKnownDevice);
+          if (lastKnownDevice)
+              updateNpUI(lastKnownDevice);
       }, 1000);
   }
 
   function stopNpPolling() {
-      if(npInterval) clearInterval(npInterval);
-      if(localTicker) clearInterval(localTicker);
+      if (npInterval)
+          clearInterval(npInterval);
+      if (localTicker)
+          clearInterval(localTicker);
       npInterval = null;
       localTicker = null;
   }
@@ -514,39 +664,54 @@ async function loadProviders() {
           updateNpUI(null);
           return;
       }
-      
-      const targetIp = select.selectedOptions[0].getAttribute('data-ip');
-      if (!targetIp) { updateNpUI(null); return; }
 
-      const devices = await api('/api/status');
-      if(Array.isArray(devices)) {
+      const targetIp = select.selectedOptions[0].getAttribute('data-ip');
+      if (!targetIp) {
+          updateNpUI(null);
+          return;
+      }
+
+      const devices = await api('api/status');
+      if (Array.isArray(devices)) {
           const device = devices.find(d => d.ip === targetIp);
-          
+
           if (device) {
+              // Restore any anchor saved before a full page navigation (e.g. a trip to
+              // Remote Control and back) — only attempted once, on this page load's
+              // first observation, and only applied if it belongs to this same speaker.
+              if (!anchorRestored) {
+                  anchorRestored = true;
+                  restoreNpAnchor(targetIp);
+              }
+
               // ⏱️ ANCHOR LOGIC: Reset stopwatch if Bose pushes a new time OR the track changes!
               if (device.position !== lastSeenPosition || device.track !== lastSeenTrack) {
-                  
-                  // If the Track Name changed, force our local math to start counting from 0
-                  if (device.track !== lastSeenTrack) {
-                      device.position = 0; 
+
+                  // Only force-reset to 0 on a genuine track change — not on the very first
+                  // observation after a fresh page load, where lastSeenTrack is still the
+                  // initial "" sentinel and would otherwise misfire as a "track change" for
+                  // a track that's actually already partway through.
+                  if (lastSeenTrack !== "" && device.track !== lastSeenTrack) {
+                      device.position = 0;
                   }
 
                   lastSeenPosition = device.position;
-                  lastSeenTrack = device.track; 
+                  lastSeenTrack = device.track;
                   positionAnchorTime = Date.now();
+                  saveNpAnchor(targetIp);
               }
-              
+
               // Apply the true anchor time to the device so the math works
-              device.lastUpdateAt = positionAnchorTime; 
-              lastKnownDevice = device; 
-              
+              device.lastUpdateAt = positionAnchorTime;
+              lastKnownDevice = device;
+
               updateNpUI(device);
           }
       }
   }
-  
-// Updates the Now Playing card with Art, Metadata, and Status Badge.
-function updateNpUI(device) {
+
+  // Updates the Now Playing card with Art, Metadata, and Status Badge.
+  function updateNpUI(device) {
       const els = {
           img: document.getElementById('np-img'),
           track: document.getElementById('np-track'),
@@ -555,7 +720,7 @@ function updateNpUI(device) {
           status: document.getElementById('np-status')
       };
 
-      if (device) { 
+      if (device) {
           // --- ARTWORK ---
           els.img.outerHTML = `
             <div id="np-img" class="np-art ${device.artPlaceholder}" style="position:relative; overflow:hidden;">
@@ -569,7 +734,7 @@ function updateNpUI(device) {
           els.track.innerText = device.track || "Ready";
           els.artist.innerText = device.artist || "";
           els.album.innerText = device.album || "";
-          
+
           // --- STATUS & SMOOTH TIMER ---
           if (device.isStandby) {
               els.status.innerHTML = `<span style="color:var(--text-secondary)">STANDBY</span>`;
@@ -590,10 +755,10 @@ function updateNpUI(device) {
                   // The Math: How many seconds passed since the server sent this status?
                   const msSinceUpdate = Date.now() - (device.lastUpdateAt || Date.now());
                   const secondDrift = isPlaying ? Math.floor(msSinceUpdate / 1000) : 0;
-                  
+
                   // Apply drift to the last known position from the hardware
                   let currentPos = Math.min((device.position || 0) + secondDrift, device.duration);
-                  
+
                   timerHtml = `<span class="np-timer">${formatTime(currentPos)} / ${formatTime(device.duration)}</span>`;
               }
 
@@ -609,71 +774,89 @@ function updateNpUI(device) {
       }
   }
 
+  // --- ACTIONS ---
 
- // --- ACTIONS ---
-
-function playItemGlobal(itemEncoded) {
+  function playItemGlobal(itemEncoded) {
       const item = JSON.parse(decodeURIComponent(itemEncoded));
       const select = document.getElementById('global-speaker');
       const speakerId = select.value;
       const speakerName = select.selectedOptions[0].text;
-      
+
       // NEW: Extract the exact IP address directly from the dropdown option!
       const speakerIp = select.selectedOptions[0].getAttribute('data-ip');
-      
-      if (!speakerId) { alert("Please select a speaker from the top menu first."); return; }
-      
-      const settings = item.settings || { shuffle: false, repeat: 'off' };
-      if (!confirm(`Are you sure you want to play "${item.name}" on ${speakerName}?`)) return;
-      
-      api('/api/manager/play_now', {
+
+      if (!speakerId) {
+          alert("Please select a speaker from the top menu first.");
+          return;
+      }
+
+      const settings = item.settings || {
+          shuffle: false,
+          repeat: 'off'
+      };
+      if (!confirm(`Are you sure you want to play "${item.name}" on ${speakerName}?`))
+          return;
+
+      api('api/manager/play_now', {
           method: 'POST',
-          body: JSON.stringify({ uri: item.uri, name: item.name, settings: settings, player_id: speakerId, ip: speakerIp })
+          body: JSON.stringify({
+              uri: item.uri,
+              name: item.name,
+              settings: settings,
+              player_id: speakerId,
+              ip: speakerIp
+          })
       });
   }
 
   // Generates HTML Media Card (Library/Search/Recent/History).
-	function renderCard(item, isLib, allowSave, hideBadge = false) {
-    if (item.type === 'HEADER') return `<div class="search-divider">${item.title}</div>`;
-    
-    const safeItem = JSON.stringify(item).replace(/"/g, '&quot;');
-    const uriEnc = encodeURIComponent(JSON.stringify(item));
-    const badge = (item.slot > 0 && !hideBadge) ? `<div class="preset-badge">${item.slot}</div>` : '';
-   
-	// --- ARTWORK LOGIC (Unified Z-Index Sandwich) ---
-    const fallbackClass = (item.type === 'custom_url' || item.type === 'radio') ? 'art-globe' : 'art-blank';
-    let imgHtml = '';
-    
-    if (item.image && item.image !== 'custom_url') {
-        imgHtml = `
+  function renderCard(item, isLib, allowSave, hideBadge = false) {
+      if (item.type === 'HEADER')
+          return `<div class="search-divider">${item.title}</div>`;
+
+      const safeItem = JSON.stringify(item).replace(/"/g, '&quot;');
+      const uriEnc = encodeURIComponent(JSON.stringify(item));
+      const badge = (item.slot > 0 && !hideBadge) ? `<div class="preset-badge">${item.slot}</div>` : '';
+
+      // --- ARTWORK LOGIC (Unified Z-Index Sandwich) ---
+      const fallbackClass = (item.type === 'custom_url' || item.type === 'radio') ? 'art-globe' : 'art-blank';
+      let imgHtml = '';
+
+      if (item.image && item.image !== 'custom_url') {
+          imgHtml = `
           <div class="art ${fallbackClass}" style="position:relative; overflow:hidden;">
              <img src="${item.image}" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:10;" onerror="this.style.display='none'">
           </div>`;
-    } else {
-        imgHtml = `<div class="art ${fallbackClass}"></div>`;
-    }
+      } else {
+          imgHtml = `<div class="art ${fallbackClass}"></div>`;
+      }
 
-    let btns = '';
-    
-	// IF HISTORY (-1): Show instant Save and Delete
-    if (item.slot === -1) {
-        btns = `<button class="btn-sm" onclick="saveToLibraryDirect('${item.uuid}')">💾 Save to Library</button>
-                <button class="btn-sm" onclick="deleteItem('${item.uuid}', true)" style="color:#e74c3c">✕</button>`;
-    }
-    // IF NORMAL: Show Play, plus Edit/Save 
-    else {
-        btns = `<button class="btn-sm" onclick="playItemGlobal('${uriEnc}')">▶ Play</button>`;
-        if (isLib) {
-            // Already in library: show Edit and Delete
-            btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">✎ Edit</button>
-                      <button class="btn-sm" onclick="deleteItem('${item.uuid}')" style="color:#e74c3c">✕</button>`;
-        } else if (allowSave) {
-            // Search result or Recent: show Save
-            btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">💾 Save</button>`;
-        }
-    }
+      let btns = '';
 
-    return `
+		// IF HISTORY (-1): Show instant Save and Delete
+      if (item.slot === -1) {
+          btns = `<button class="btn-sm" onclick="saveToLibraryDirect('${item.uuid}', this)">💾 Save to Library</button>
+                <button class="btn-sm action-delete" onclick="deleteItem('${item.uuid}', true)" title="Delete Stream" style="color: var(--danger); font-size: 0.8em; font-weight: bold;">✖</button>`;
+      }
+      // IF NORMAL: Show Play, plus Edit/Save
+      else {
+          btns = `<button class="btn-sm" onclick="playItemGlobal('${uriEnc}')">▶ Play</button>`;
+          if (isLib) {
+              if (item.slot > 0) {
+                  // Preset: Edit button + Uniform Red X
+                  btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">✎ Edit</button>
+            <button class="btn-sm action-delete" onclick="deleteItem('${item.uuid}')" title="Clear Preset" style="color: var(--danger); font-size: 0.8em; font-weight: bold;">✖</button>`;
+              } else {
+                  // Favorite: Edit button + Uniform Red X
+                  btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">✎ Edit</button>
+            <button class="btn-sm action-delete" onclick="deleteItem('${item.uuid}')" title="Delete Favorite" style="color: var(--danger); font-size: 0.8em; font-weight: bold;">✖</button>`;
+              }
+          } else if (allowSave) {
+              btns += ` <button class="btn-sm" onclick="openModal(${safeItem})">💾 Save</button>`;
+          }
+      }
+
+      return `
       <div class="card">
         ${badge}
         ${imgHtml}
@@ -687,74 +870,99 @@ function playItemGlobal(itemEncoded) {
   }
 
   // --- SEARCH LOGIC ---
-function setSource(s) {
-    state.source = s;
-    document.getElementById('search-results').innerHTML = ''; 
-    document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active-spotify', 'active-radio', 'active-nas','active-global'));   
-	
-    const map = { spotify: 'active-spotify', radio: 'active-radio', nas: 'active-nas', global: 'active-global'};   
-    const activeBtn = document.querySelector(`.source-btn[onclick="setSource('${s}')"]`);
-    if (activeBtn) activeBtn.classList.add(map[s]);
-    
-    const filterRow = document.getElementById('filter-row');
-    const searchInput = document.getElementById('q');
-    const providerSelect = document.getElementById('provider-filter'); 
-    
-    if (s === 'radio') { 
-        setFilter('all'); 
-        filterRow.style.display = 'none'; 
-    } else {
-        filterRow.style.display = 'flex';
-        if (s === 'nas') { setFilter('all'); searchInput.value = ""; }
-		
-        const stationPill = document.getElementById('filter-stations');
-        if (stationPill) {
-            stationPill.style.display = (s === 'global') ? 'block' : 'none';
-        }
+  function setSource(s) {
+      state.source = s;
+      document.getElementById('search-results').innerHTML = '';
+      document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active-spotify', 'active-radio', 'active-nas', 'active-global'));
 
-        // --- Toggle Search Provider Dropdown ---
-        if (providerSelect) {
-            providerSelect.style.display = (s === 'global') ? 'inline-block' : 'none';
-            if (s !== 'global') providerSelect.value = 'all'; 
-        }
-    }
+      const activeBtn = document.querySelector(`.source-btn[onclick="setSource('${s}')"]`);
+      if (activeBtn) {
+          // Map sourceType to a CSS active class; unknown music providers use active-nas styling
+          const entry = currentSearchOrder.find(e => e.key === s);
+          const sourceType = entry ? entry.sourceType : 'music';
+          const cssClass = sourceType === 'global' ? 'active-global' : sourceType === 'radio' ? 'active-radio' : 'active-nas';
+          activeBtn.classList.add(cssClass);
+      }
+
+      const filterRow = document.getElementById('filter-row');
+      const searchInput = document.getElementById('q');
+      const providerSelect = document.getElementById('provider-filter');
+      const entry = currentSearchOrder.find(e => e.key === s);
+      const sourceType = entry ? entry.sourceType : 'music';
+
+      if (sourceType === 'radio') {
+          setFilter('all');
+          filterRow.style.display = 'none';
+      } else {
+          filterRow.style.display = 'flex';
+          if (sourceType === 'music') {
+              setFilter('all');
+              searchInput.value = "";
+          }
+
+          const isGlobal = (sourceType === 'global');
+          ['filter-radio', 'filter-podcast', 'filter-audiobook'].forEach(id => {
+              const pill = document.getElementById(id);
+              if (pill) pill.style.display = isGlobal ? 'block' : 'none';
+          });
+
+          if (providerSelect) {
+              providerSelect.style.display = (sourceType === 'global') ? 'inline-block' : 'none';
+              if (sourceType !== 'global')
+                  providerSelect.value = 'all';
+          }
+      }
   }
 
   function setFilter(f) {
-    state.filter = f;
-    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
-    
-    // Select the button that triggered the event, or find it by attribute if programmatic
-    const btn = document.querySelector(`.filter-pill[onclick="setFilter('${f}')"]`);
-    if(btn) btn.classList.add('active');
+      state.filter = f;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+
+      // Select the button that triggered the event, or find it by attribute if programmatic
+      const btn = document.querySelector(`.filter-pill[onclick="setFilter('${f}')"]`);
+      if (btn)
+          btn.classList.add('active');
   }
 
   async function doSearch() {
-    const q = document.getElementById('q').value;
-    const limit = document.getElementById('limit').value; 
-	const providerFilter = document.getElementById('provider-filter') ? document.getElementById('provider-filter').value : 'all'; 
-    const box = document.getElementById('search-results');
-    
-    if (!q.trim()) { box.innerHTML = '<div style="padding:20px; color:#aaa">Please enter a search term.</div>'; return; }
-    
-    box.innerHTML = '<div style="padding:20px; color:#888">Searching MASS...</div>';
-    
-    const data = await api('/api/manager/search', {
-        method: 'POST',
-		body: JSON.stringify({ query: q, source: state.source, type: state.filter, limit: limit, providerFilter: providerFilter }) // <-- NEW: Added to paylo
-    });
-    
-    if (data.error) {
-        box.innerHTML = `<div style="padding:20px; color:red">Server Error: ${data.error}</div>`;
-        return;
-    }
-    
-    if(!Array.isArray(data) || data.length === 0) {
-        box.innerHTML = '<div style="padding:20px; color:#aaa">No results found (Strict Filter is ON).</div>';
-    } else {
-        const allowSave = (state.source !== 'spotify'); 
-        box.innerHTML = data.map(i => renderCard(i, false, allowSave)).join('');
-    }
+      const q = document.getElementById('q').value;
+      const limit = document.getElementById('limit').value;
+      const providerFilter = document.getElementById('provider-filter') ? document.getElementById('provider-filter').value : 'all';
+      const box = document.getElementById('search-results');
+
+      if (!q.trim()) {
+          box.innerHTML = '<div style="padding:20px; color:#aaa">Please enter a search term.</div>';
+          return;
+      }
+
+      box.innerHTML = '<div style="padding:20px; color:#888">Searching MASS...</div>';
+
+      const entry = currentSearchOrder.find(e => e.key === state.source);
+      const sourceType = entry ? entry.sourceType : 'music';
+
+      const data = await api('api/manager/search', {
+          method: 'POST',
+          body: JSON.stringify({
+              query: q,
+              source: state.source,
+              sourceType: sourceType,
+              type: state.filter,
+              limit: limit,
+              providerFilter: providerFilter
+          })
+      });
+
+      if (data.error) {
+          box.innerHTML = `<div style="padding:20px; color:red">Server Error: ${data.error}</div>`;
+          return;
+      }
+
+      if (!Array.isArray(data) || data.length === 0) {
+          box.innerHTML = '<div style="padding:20px; color:#aaa">No results found.</div>';
+      } else {
+          const allowSave = (state.source !== 'spotify');
+          box.innerHTML = data.map(i => renderCard(i, false, allowSave)).join('');
+      }
   }
 
   // --- DATA LOADING (Library / Recents) ---
@@ -762,222 +970,305 @@ function setSource(s) {
   async function loadRecents() {
       const box = document.getElementById('recents-results');
       box.innerHTML = '<div style="padding:20px; color:#888">Loading Recents...</div>';
-      
-      const data = await api('/api/manager/recents');
+
+      const data = await api('api/manager/recents');
       if (Array.isArray(data)) {
-          box.innerHTML = data.map(i => renderCard(i, false, true)).join(''); 
+          box.innerHTML = data.map(i => renderCard(i, false, true)).join('');
       } else {
           box.innerHTML = `Error loading recents`;
       }
   }
 
   async function loadLibrary() {
-    const library = await api('/api/manager/library');
-    if (!Array.isArray(library)) return;
-    
-    // Custom sort priority: Playlist > Artist > Album > Track
-    const typePriority = { 'playlist': 1, 'artist': 2, 'album': 3, 'track': 4 };
-    
-    library.sort((a, b) => {
-        const pA = typePriority[a.type] || 99;
-        const pB = typePriority[b.type] || 99;
-        if (pA !== pB) return pA - pB;
-        return (a.name || "").localeCompare(b.name || "");
-    });
+      const library = await api('api/manager/library');
+      if (!Array.isArray(library))
+          return;
+      libraryItems = library;
+      refreshSlotLabels();
 
-    const viewScope = document.getElementById('preset-view-filter') ? document.getElementById('preset-view-filter').value : '';
+      // Custom sort priority: Playlist > Artist > Album > Track
+      const typePriority = {
+          'playlist': 1,
+          'artist': 2,
+          'album': 3,
+          'track': 4
+      };
 
-    // Generate Preset Cards (Slots 1-6) based on selected scope
-    const presets = [1,2,3,4,5,6].map(slot => {
-        const item = library.find(i => i.slot === slot && (i.speakerIp || '') === viewScope);
-        if(item) return renderCard(item, true, true);
-        // Updated empty slot styling to use a class instead of inline dim styles
-        return `<div class="card empty-slot">Slot ${slot} Empty (${viewScope === '' ? 'Global' : 'Hybrid'})</div>`;
-    }).join('');
-    
-	// --- FAVORITES FILTERING & DYNAMIC DROPDOWN ---
-    const allFavs = library.filter(i => i.slot === 0 || (i.slot > 0 && i.speakerIp));
-    
-	// 1. "Outer Join" logic: Merge MA Global Providers with local unique Favorites
-    const uniqueProviders = [...new Set(allFavs.map(i => i.provider || 'unknown'))];
-    const favProvSelect = document.getElementById('fav-provider-filter');
-    
-    if (favProvSelect) {
-        const currentFavProv = favProvSelect.value;
-        let provHtml = '<option value="all">All Providers</option>';
-        
-        // Merge the global Music Assistant providers with any unique ones from our library
-        const allDomains = new Set([...globalProviders.map(p => p.domain), ...uniqueProviders]);
-        
-			Array.from(allDomains).sort().forEach(provDomain => {
-            const maProv = globalProviders.find(p => p.domain === provDomain);
-            let friendlyName = maProv ? maProv.name : provDomain.charAt(0).toUpperCase() + provDomain.slice(1);
-            
-            // --- Rename "builtin" to "URL Stream" for the UI ---
-            if (provDomain === 'builtin' || provDomain === 'url') {
-                friendlyName = 'URL Stream';
-            }
-            
-            if (uniqueProviders.includes(provDomain)) {
-                // Provider has active favorites - Make it selectable
-                provHtml += `<option value="${provDomain}">${friendlyName}</option>`;
-            } else {
-                // Provider has NO active favorites - Gray it out and disable it
-                provHtml += `<option value="${provDomain}" disabled style="color: #666; font-style: italic;">${friendlyName}</option>`;
-            }
-        });
-        
-        favProvSelect.innerHTML = provHtml;
-        
-        // Retain selection if valid, otherwise fallback to 'all'
-        if (uniqueProviders.includes(currentFavProv) || currentFavProv === 'all') {
-            favProvSelect.value = currentFavProv;
-        } else {
-            favProvSelect.value = 'all';
-        }
-    }
+      library.sort((a, b) => {
+          const pA = typePriority[a.type] || 99;
+          const pB = typePriority[b.type] || 99;
+          if (pA !== pB)
+              return pA - pB;
+          return (a.name || "").localeCompare(b.name || "");
+      });
 
-    // 2. Apply Filters (Pills + Dropdown)
-    let filteredFavs = allFavs;
-    if (state.favFilter !== 'all') {
-        filteredFavs = filteredFavs.filter(i => i.type === state.favFilter);
-    }
-    if (favProvSelect && favProvSelect.value !== 'all') {
-        filteredFavs = filteredFavs.filter(i => (i.provider || 'unknown') === favProvSelect.value);
-    }
+      const viewScope = document.getElementById('preset-view-filter') ? document.getElementById('preset-view-filter').value : '';
 
-    const favsHtml = filteredFavs.map(i => renderCard(i, true, true, true)).join('');
-    
-    document.getElementById('lib-presets').innerHTML = presets;
-    document.getElementById('lib-favorites').innerHTML = favsHtml || '<div style="padding:20px; color:#555">No items match your filters.</div>';
+      // Generate Preset Cards — slots 1-6 standard, plus 11-66 if extended presets enabled
+      const presetSlots = extendedPresetsEnabled ? [1,2,3,4,5,6,11,22,33,44,55,66] : [1,2,3,4,5,6];
+      const presets = presetSlots.map(slot => {
+          const item = library.find(i => i.slot === slot && (i.speakerIp || '') === viewScope);
+          if (item)
+              return renderCard(item, true, true);
+          return `<div class="card empty-slot">Slot ${slot} Empty (${viewScope === '' ? 'Global' : 'Hybrid'})</div>`;
+      }).join('');
+
+      // --- FAVORITES FILTERING & DYNAMIC DROPDOWN ---
+      const allFavs = library.filter(i => i.slot === 0);
+
+      // 1. "Outer Join" logic: Merge MA Global Providers with local unique Favorites
+      // Strip instance IDs (e.g., spotify--xyz -> spotify), same convention as routes/manager.js,
+      // so a second provider instance doesn't show up as its own duplicate dropdown entry.
+      const uniqueProviders = [...new Set(allFavs.map(i => (i.provider || 'unknown').split('--')[0]))];
+      const favProvSelect = document.getElementById('fav-provider-filter');
+
+      if (favProvSelect) {
+          const currentFavProv = favProvSelect.value;
+          let provHtml = '<option value="all">All Providers</option>';
+
+          // Merge the global Music Assistant providers with any unique ones from our library
+          const allDomains = new Set([...globalProviders.map(p => p.domain), ...uniqueProviders]);
+
+          Array.from(allDomains).sort().forEach(provDomain => {
+              const maProv = globalProviders.find(p => p.domain === provDomain);
+              let friendlyName = maProv ? maProv.name : provDomain.charAt(0).toUpperCase() + provDomain.slice(1);
+
+              // --- Rename "builtin" to "URL Stream" for the UI ---
+              if (provDomain === 'builtin' || provDomain === 'url') {
+                  friendlyName = 'URL Stream';
+              }
+
+              if (uniqueProviders.includes(provDomain)) {
+                  // Provider has active favorites - Make it selectable
+                  provHtml += `<option value="${provDomain}">${friendlyName}</option>`;
+              } else {
+                  // Provider has NO active favorites - Gray it out and disable it
+                  provHtml += `<option value="${provDomain}" disabled style="color: #666; font-style: italic;">${friendlyName}</option>`;
+              }
+          });
+
+          favProvSelect.innerHTML = provHtml;
+
+          // Retain selection if valid, otherwise fallback to 'all'
+          if (uniqueProviders.includes(currentFavProv) || currentFavProv === 'all') {
+              favProvSelect.value = currentFavProv;
+          } else {
+              favProvSelect.value = 'all';
+          }
+      }
+
+      // 2. Apply Filters (Pills + Dropdown + Search)
+      let filteredFavs = allFavs;
+      if (state.favFilter !== 'all') {
+          filteredFavs = filteredFavs.filter(i => i.type === state.favFilter);
+      }
+      if (favProvSelect && favProvSelect.value !== 'all') {
+          // Compare stripped domains so an instance-suffixed favorite (e.g. spotify--xyz)
+          // still matches the plain "spotify" dropdown selection.
+          filteredFavs = filteredFavs.filter(i => (i.provider || 'unknown').split('--')[0] === favProvSelect.value);
+      }
+      const favSearchEl = document.getElementById('fav-search');
+      const favSearchQuery = favSearchEl ? favSearchEl.value.trim().toLowerCase() : '';
+      if (favSearchQuery) {
+          // Runs last, on whatever the pill + provider filters already narrowed down to —
+          // searching the subset, not the full favorites list.
+          filteredFavs = filteredFavs.filter(i =>
+              (i.name || '').toLowerCase().includes(favSearchQuery) ||
+              (i.subtitle || '').toLowerCase().includes(favSearchQuery)
+          );
+      }
+
+      const favsHtml = filteredFavs.map(i => renderCard(i, true, true, true)).join('');
+
+      const libPresetsEl = document.getElementById('lib-presets');
+      libPresetsEl.classList.toggle('extended', extendedPresetsEnabled);
+      libPresetsEl.innerHTML = presets;
+      document.getElementById('lib-favorites').innerHTML = favsHtml || '<div style="padding:20px; color:#555">No items match your filters.</div>';
   }
 
   // --- MODAL & SAVING ---
-  
+
   // Forces a strong visual gray-out of the Target Speaker dropdown
-  function toggleSpeakerDropdown(slotValue) {
-      const speakerSelect = document.getElementById('edit-speaker');
-      const speakerLabel = document.getElementById('label-edit-speaker');
-      const isFavorite = (parseInt(slotValue) === 0);
-      
-      speakerSelect.disabled = isFavorite;
-      
-      if (isFavorite) {
-          speakerSelect.style.opacity = '0.4';
-          speakerSelect.style.cursor = 'not-allowed';
-          speakerLabel.style.opacity = '0.4';
-      } else {
-          speakerSelect.style.opacity = '1';
-          speakerSelect.style.cursor = 'pointer';
-          speakerLabel.style.opacity = '1';
-      }
+  // Shows/hides Target Speaker + Assign to Slot together — both are irrelevant for
+  // a favorite-only save, so they're gated by this single checkbox rather than by
+  // the slot dropdown's value (that used to make Target Speaker unusable until a
+  // real slot was already picked, forcing slot to be chosen before its own label
+  // context — speaker — was set).
+  function togglePresetAssignFields(checked) {
+      const fields = document.getElementById('preset-assign-fields');
+      if (fields) fields.style.display = checked ? 'block' : 'none';
+      if (checked) refreshSlotLabels();
   }
 
   function openModal(item) {
       document.getElementById('modal').style.display = 'flex';
-      
+
+      // Reset the Save button — saveItem() leaves it disabled and reading "✅ Saved!"
+      // after a successful save, and it's a static button, not recreated per-open.
+      const saveBtn = document.getElementById('modal-save-btn');
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+      saveBtn.classList.remove('btn-success');
+
+      // A brand-new Search/Recents/Custom URL item has no uuid yet — only an item
+      // already in the library (Favorite or Preset) does, and "Save" reads wrong for
+      // those since nothing new is being created. Split further by slot so editing a
+      // Preset doesn't read the same as editing a Favorite — they're different edits.
+      {
+          const isExisting = !!item.uuid;
+          const isPreset = isExisting && (parseInt(item.slot) || 0) > 0;
+          document.getElementById('modal-title').textContent = !isExisting
+              ? 'Save to Library'
+              : (isPreset ? 'Update Preset' : 'Update Favorite');
+      }
+
       // Populate hidden fields
-      ['uuid', 'uri', 'image', 'type', 'subtitle','provider'].forEach(field => {
+      ['uuid', 'uri', 'image', 'type', 'subtitle', 'provider'].forEach(field => {
           document.getElementById('edit-' + field).value = item[field] || (field === 'uuid' ? '' : item.type);
       });
       document.getElementById('edit-name').value = item.name;
-      
-      const slotVal = parseInt(item.slot) || 0;
-      document.getElementById('edit-slot').value = slotVal;
-      document.getElementById('edit-speaker').value = item.speakerIp || '';
 
-      // Run the visual gray-out logic immediately upon opening
-      toggleSpeakerDropdown(slotVal);
+      const slotVal = parseInt(item.slot) || 0;
+      document.getElementById('edit-speaker').value = item.speakerIp || '';
+      refreshSlotLabels(); // labels reflect this item's speaker scope, not whatever was last shown
+      document.getElementById('edit-slot').value = slotVal > 0 ? slotVal : 1; // always reset — otherwise a fresh item inherits whatever slot the modal last showed
+
+      // Checkbox defaults to the item's own current state — a brand-new Search/Recents
+      // item never carries a slot, so this naturally lands on favorite-only for those,
+      // and on "assigned" (pre-filled to its real slot/speaker) for an existing preset.
+      const assignChk = document.getElementById('edit-assign-preset');
+      assignChk.checked = slotVal > 0;
+      togglePresetAssignFields(assignChk.checked);
+
+      // Spells out what unchecking actually does — saving with this off clears the
+      // preset pointer but leaves the item's Favorite entry untouched (routes/manager.js
+      // RULE 1 always keeps one around), so "remove" here never loses the content.
+      document.getElementById('label-assign-preset').textContent = slotVal > 0
+          ? 'Assigned to Preset — uncheck to remove'
+          : 'Assign to a Preset';
 
       // Handle Settings (Shuffle/Repeat)
       const uri = (item.uri || "").toLowerCase();
       const type = (item.type || "").toLowerCase();
-      
+
       const shuf = document.getElementById('edit-shuffle');
-      const rep  = document.getElementById('edit-repeat');
-      
-      shuf.disabled = false; rep.disabled = false;
-      
+      const rep = document.getElementById('edit-repeat');
+
+      shuf.disabled = false;
+      rep.disabled = false;
+
       // Disable options for Radio streams as they don't support shuffle/repeat
-	if (type === 'radio' || uri.includes('tunein') || uri.includes('radio')) {
-          shuf.checked = false; shuf.disabled = true; 
-          rep.value = 'off'; rep.disabled = true; 
-      } else { 
-          shuf.checked = item.settings?.shuffle || false; 
-          rep.value = item.settings?.repeat || 'off'; 
+      if (type === 'radio' || uri.includes('tunein') || uri.includes('radio')) {
+          shuf.checked = false;
+          shuf.disabled = true;
+          rep.value = 'off';
+          rep.disabled = true;
+      } else {
+          shuf.checked = item.settings?.shuffle || false;
+          rep.value = item.settings?.repeat || 'off';
       }
   }
 
-  function closeModal() { document.getElementById('modal').style.display = 'none'; }
+  function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+  }
 
-  async function saveItem() {
+  async function saveItem(btn) {
       const data = {
           uuid: document.getElementById('edit-uuid').value,
           name: document.getElementById('edit-name').value,
-          subtitle: document.getElementById('edit-subtitle').value, 
+          subtitle: document.getElementById('edit-subtitle').value,
           uri: document.getElementById('edit-uri').value,
           image: document.getElementById('edit-image').value,
           type: document.getElementById('edit-type').value,
-		  provider: document.getElementById('edit-provider').value, 
-          slot: document.getElementById('edit-slot').value,
-          speakerIp: document.getElementById('edit-speaker').value,
-          settings: { 
-              shuffle: document.getElementById('edit-shuffle').checked, 
+          provider: document.getElementById('edit-provider').value,
+          slot: document.getElementById('edit-assign-preset').checked ? document.getElementById('edit-slot').value : '0',
+          speakerIp: document.getElementById('edit-assign-preset').checked ? document.getElementById('edit-speaker').value : '',
+          settings: {
+              shuffle: document.getElementById('edit-shuffle').checked,
               repeat: document.getElementById('edit-repeat').value
           }
       };
-      
-      await api('/api/manager/save', { method: 'POST', body: JSON.stringify(data) });
+
+      const orig = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+      await api('api/manager/save', {
+          method: 'POST',
+          body: JSON.stringify(data)
+      });
+
+      if (btn) { btn.textContent = '✅ Saved!'; btn.classList.add('btn-success'); }
+      await new Promise(r => setTimeout(r, 700));
       closeModal();
-      
-      if(state.tab === 'library') loadLibrary(); 
-      else alert("Saved to Library!");
+      if (state.tab === 'library') loadLibrary();
   }
 
-  async function deleteItem(uuid) { 
-      if(confirm("Delete this item?")) { 
-          await api(`/api/manager/delete/${uuid}`, { method: 'DELETE' }); 
-          loadLibrary(); 
-      } 
+  // Updated deleteItem to support optional refresh of history, and smart confirmation messages
+  // Deleting a Favorite (slot 0) cascades to every preset sharing its URI (routes/manager.js
+  // RULE 4) — a real, permanent delete. Deleting a Preset only drops that one pointer
+  // (RULE 3); the Favorite it came from is untouched. The confirm text below reflects
+  // that real difference, sourced from the already-loaded libraryItems (no extra fetch).
+  function deleteItem(uuid, isHistory = false) {
+      let warningText = "Delete this item?";
+      if (!isHistory) {
+          const item = libraryItems.find(i => i.uuid === uuid);
+          const isFavorite = item ? item.slot === 0 : false;
+          warningText = isFavorite
+              ? "🗑️ permanently DELETE this item from your Favorites?"
+              : "✕ CLEAR this item from the preset slot? (It will stay in your Favorites)";
+      }
+
+      if (!confirm(`Are you sure you want to ${warningText}`)) return;
+
+      api(`api/manager/delete/${uuid}`, { method: 'DELETE' }).then(() => {
+          if (isHistory)
+              loadCustomHistory();
+          else
+              loadLibrary();
+      });
   }
 
   // --- SPEAKER LIST MODAL (Secondary) ---
   // Used when clicking "Play" from the search results to confirm target speaker.
-  
-  async function playItem(uuid) { openSpeakerModal(uuid); }
-  
-  function openSpeakerModal(uuid) { 
-      selectedUuid = uuid; 
-      renderSpeakerList(); 
-      document.getElementById('speaker-modal').style.display = 'flex'; 
-  }
-  
-  function closeSpeakerModal() { document.getElementById('speaker-modal').style.display = 'none'; }
 
-async function renderSpeakerList() {
+  function openSpeakerModal(uuid) {
+      selectedUuid = uuid;
+      renderSpeakerList();
+      document.getElementById('speaker-modal').style.display = 'flex';
+  }
+
+  function closeSpeakerModal() {
+      document.getElementById('speaker-modal').style.display = 'none';
+  }
+
+  async function renderSpeakerList() {
       const [devices, maPlayers] = await Promise.all([
-          api('/api/status'),
-          api('/api/manager/players')
-      ]);
-      if (!Array.isArray(devices)) return;
-      
+                  api('api/status'),
+                  api('api/manager/players')
+              ]);
+      if (!Array.isArray(devices))
+          return;
+
       const list = document.getElementById('speaker-list');
       list.innerHTML = devices.map(d => {
           // Check if MASS can see it
           const p = maPlayers ? maPlayers.find(mp => mp.ip === d.ip) : null;
-          
+
           const isOffline = !d.online;
           const isMissingFromMass = !p;
           const isDisabled = isOffline || isMissingFromMass;
-          
+
           let subText = d.isStandby ? 'OFF' : 'ON';
-          if (isOffline) subText = 'OFFLINE';
-          else if (isMissingFromMass) subText = 'NO MASS';
-          
+          if (isOffline)
+              subText = 'OFFLINE';
+          else if (isMissingFromMass)
+              subText = 'NO MASS';
+
           // Gray out the button and disable clicks if unplayable using the new CSS class
           const btnClass = isDisabled ? 'btn btn-unreachable' : 'btn';
           const btnStyle = 'justify-content:space-between;';
-          const clickAction = isDisabled ? '' : `onclick="confirmPlay('${d.ip}')"`;
+          const clickAction = isDisabled ? '' : `onclick="confirmPlay('${d.ip}', this)"`;
 
           return `<button class="${btnClass}" style="${btnStyle}" ${clickAction}>
               ${d.name} <span style="font-size:0.8em; color:var(--text-secondary)">${subText}</span>
@@ -985,36 +1276,47 @@ async function renderSpeakerList() {
       }).join('');
   }
 
-  async function confirmPlay(ip) {
-      document.getElementById('speaker-modal').style.display = 'none';
-      await api('/api/manager/play', { 
-          method: 'POST', 
-          body: JSON.stringify({ uuid: selectedUuid, ip }) 
+  async function confirmPlay(ip, btn) {
+      if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+      await api('api/manager/play', {
+          method: 'POST',
+          body: JSON.stringify({
+              uuid: selectedUuid,
+              ip
+          })
       });
-      alert(`Playing on ${ip}...`);
-  } 
-  
-	async function playCustomStream() {
+      if (btn) { btn.textContent = '✅ Playing!'; btn.classList.add('btn-success'); }
+      setTimeout(() => { document.getElementById('speaker-modal').style.display = 'none'; }, 800);
+  }
+
+  async function playCustomStream() {
       const urlInput = document.getElementById('stream-url');
       const nameInput = document.getElementById('stream-name');
       const url = urlInput.value.trim();
       const name = nameInput.value.trim();
       const select = document.getElementById('global-speaker');
-      const playerId = select.value; 
-      
-      if (!playerId) return alert("Please select a speaker from the top menu.");     
-      if (!url) return alert("❌ Please enter a Stream URL.");
-      if (!name) return alert("❌ Please enter a Station Name.");
-      
-      const res = await api('/api/manager/play_stream', { 
-          method: 'POST', 
-          body: JSON.stringify({ player_id: playerId, url, name }) 
+      const playerId = select.value;
+
+      if (!playerId)
+          return alert("Please select a speaker from the top menu.");
+      if (!url)
+          return alert("❌ Please enter a Stream URL.");
+      if (!name)
+          return alert("❌ Please enter a Station Name.");
+
+      const res = await api('api/manager/play_stream', {
+          method: 'POST',
+          body: JSON.stringify({
+              player_id: playerId,
+              url,
+              name
+          })
       });
-      
-      if(res.success) {
+
+      if (res.success) {
           urlInput.value = '';
           nameInput.value = '';
-          loadCustomHistory(); 
+          loadCustomHistory();
       } else {
           alert("Error: " + (res.error || "Failed to start stream."));
       }
@@ -1023,44 +1325,43 @@ async function renderSpeakerList() {
   async function loadCustomHistory() {
       const box = document.getElementById('custom-history-results');
       box.innerHTML = '<div style="padding:20px; color:#888">Loading History...</div>';
-      
-      const library = await api('/api/manager/library');
-      if (!Array.isArray(library)) return;
-      
+
+      const library = await api('api/manager/library');
+      if (!Array.isArray(library))
+          return;
+
       // Filter for slot -1, reverse so newest is first
-      const history = library.filter(i => i.slot === -1).reverse(); 
-      
+      const history = library.filter(i => i.slot === -1).reverse();
+
       if (history.length === 0) {
           box.innerHTML = '<div style="padding:10px; color:#555">No recent unsaved streams.</div>';
       } else {
           box.innerHTML = history.map(i => renderCard(i, false, true, true)).join('');
       }
   }
-  
+
   // Saves history item to Fav (Slot 0) without modal
-  async function saveToLibraryDirect(uuid) {
-      const library = await api('/api/manager/library');
+  async function saveToLibraryDirect(uuid, btn) {
+      const orig = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+      const library = await api('api/manager/library');
       const item = library.find(i => i.uuid === uuid);
       if (!item) return;
 
       // Promote to Favorite (Slot 0) and strip UUID so it saves as a new library item
-      const data = { ...item, slot: 0 };
-      
-      await api('/api/manager/save', { method: 'POST', body: JSON.stringify(data) });
-      alert(`"${item.name}" saved to Favorites!`);
-      loadCustomHistory(); // Refresh list
-  }
+      const data = {
+          ...item,
+          slot: 0
+      };
 
-  // Updated deleteItem to support optional refresh of history
-  async function deleteItem(uuid, isHistory = false) { 
-      if(confirm("Delete this item?")) { 
-          await api(`/api/manager/delete/${uuid}`, { method: 'DELETE' }); 
-          if(isHistory) loadCustomHistory();
-          else loadLibrary(); 
-      } 
+      await api('api/manager/save', {
+          method: 'POST',
+          body: JSON.stringify(data)
+      });
+      if (btn) { btn.textContent = '✅ Saved!'; btn.classList.add('btn-success'); }
+      setTimeout(() => loadCustomHistory(), 1000); // brief pause so user sees the confirmation
   }
-  
-
 </script>
 </body>
-</html> 
+</html>

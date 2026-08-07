@@ -1,9 +1,9 @@
 // --- GITHUB UPDATE BANNER HTML ---
 const updateBannerHTML = `
-<div id="github-update-banner" style="display: none; background: #0056b3; color: white; padding: 12px; text-align: center; font-family: sans-serif; position: relative; z-index: 10000; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+<div id="github-update-banner" class="banner banner-update">
     🚀 <strong>Update Available!</strong> Version <span id="update-version-text"></span> is out.
-    <a id="update-link" href="#" target="_blank" style="color: #fff; text-decoration: underline; margin: 0 20px; font-weight: bold;">View Release Notes & Update</a>
-    <button id="update-dismiss-btn" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 5px 15px; cursor: pointer; border-radius: 4px; font-weight: bold;">Dismiss</button>
+    <a id="update-link" class="banner-link" href="#" target="_blank">View Release Notes & Update</a>
+    <button id="update-dismiss-btn" class="banner-button">Dismiss</button>
 </div>
 `;
 
@@ -17,7 +17,7 @@ window.dismissUpdateBanner = function(versionToDismiss) {
 // Function to ping the backend and check for updates
 async function checkForUpdates() {
     try {
-        const res = await fetch(`/api/check_update?t=${Date.now()}`, { cache: 'no-store' });
+        const res = await fetch(`api/check_update?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         
         if (data.updateAvailable) {
@@ -39,60 +39,152 @@ async function checkForUpdates() {
     }
 }
 
-const boseMassBannerHTML = `
+// --- UNIFIED MASS HEALTH MODAL HTML ---
+const maHealthBannerHTML = `
 <div id="mass-error-banner">
     <div class="banner-header">
-        <span class="banner-title">⚠️ Music Assistant Error</span>
-        <button class="banner-close" onclick="dismissMassBanner()">&times;</button>
+        <span class="banner-title">🚨 Music Assistant Error</span>
+        <button class="banner-close" onclick="dismissHealthModal()">&times;</button>
     </div>
     <div class="banner-body">
         Music Assistant reported a playback failure. How to fix it:
         <ul>
             <li>
-                <strong>Invalid Media (Empty album, dead stream, missing file):</strong><br>
-                No restart needed. You can <strong>Dismiss</strong> this message. It will also automatically clear the next time you successfully play a valid preset or library item on this same speaker.
+                <strong>Invalid Media (Empty album, dead stream):</strong><br>
+                No restart needed. <strong>Dismiss</strong> this message. It will clear on next successful playback.
             </li>
             <li>
-                <strong>Dropped DLNA Socket:</strong><br>
-                The connection to the speaker has died. You must click <strong>Restart Service</strong> below to recover.
+                <strong>Dropped DLNA/AirPlay Socket:</strong><br>
+                The speaker connection dropped. Try a quick <strong>Reload MA DLNA & AirPlay Providers</strong> first.
+            </li>
+            <li>
+                <strong>Server Locked Up:</strong><br>
+                If reconnecting fails, you must do a full <strong>Restart Service</strong>.
             </li>
         </ul>
     </div>
     <div class="banner-actions">
-        <button class="btn-dismiss" onclick="dismissMassBanner()">Dismiss</button>
-        <button class="btn-restart" onclick="restartMassFromBanner(this)">Restart Service</button>
+        <button class="btn-dismiss banner-button banner-button--success" onclick="dismissHealthModal()">✅ Dismiss</button>
+        <button class="btn-reconnect banner-button" onclick="executeGlobalRecovery(this)">🔄 Reload MA DLNA & AirPlay Providers</button>
+        <button class="btn-restart banner-button" onclick="executeGlobalRestart(this)">Restart Service</button>
     </div>
 </div>
 `;
 
+// --- UNIFIED RECOVERY LOGIC ---
+async function executeGlobalRecovery(btn) {
+    const orig = btn.innerText;
+    btn.innerText = "Reloading...";
+    btn.disabled = true;
+
+    try {
+        // Reload MA DLNA provider
+        await fetch('api/admin/rescan_ma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aggressive: true, provider: 'dlna' })
+        });
+        
+        // Reload MA AirPlay provider
+        await fetch('api/admin/rescan_ma', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aggressive: true, provider: 'airplay' })
+        });
+
+        await fetch('api/health/reset', { method: 'POST' }); 
+        btn.innerText = "✅ Sent";
+        setTimeout(() => { dismissHealthModal(); }, 1500);
+
+    } catch (e) {
+        btn.innerText = "❌ Error";
+        setTimeout(() => { btn.innerText = orig; btn.disabled = false; }, 3000);
+    }
+}
+
+// Global hook to restart the docker container
+async function executeGlobalRestart(btn) {
+    if (!confirm("Are you sure you want to completely restart the Music Assistant container?")) return;
+    const orig = btn.innerText;
+    btn.innerText = "Restarting...";
+    btn.disabled = true;
+    window.isMaRestartingProcess = true; // Lock the UI loops
+
+    try {
+        await fetch('api/admin/restart_ma', { method: 'POST' });
+        await fetch('api/health/reset', { method: 'POST' }); 
+        
+        btn.innerText = "✅ Sent";
+        setTimeout(() => { 
+            dismissHealthModal(); 
+            window.isMaRestartingProcess = false; // Unlock after command clears
+        }, 1500);
+    } catch (e) {
+        btn.innerText = "❌ Error";
+        setTimeout(() => { 
+            btn.innerText = orig; 
+            btn.disabled = false; 
+            window.isMaRestartingProcess = false; 
+        }, 3000);
+    }
+}
+
+function dismissHealthModal() {
+    const banner = document.getElementById('mass-error-banner');
+    if (banner) {
+        banner.style.display = 'none';
+        banner.dataset.dismissed = "true";
+        banner.style.transform = ''; banner.style.left = ''; banner.style.top = '';
+    }
+    
+    // Tell the backend we are ignoring the error so it stops bugging us
+    fetch('api/health/reset', { method: 'POST' }).catch(() => console.log("Health reset suppressed")); 
+}
+
 // Inject the banner HTML into the DOM as soon as the page loads
 document.addEventListener("DOMContentLoaded", () => {
-    document.body.insertAdjacentHTML('afterbegin', boseMassBannerHTML);
-	document.body.insertAdjacentHTML('afterbegin', updateBannerHTML);
+    // BUG FIX: Changed from boseMassBannerHTML to the correct maHealthBannerHTML
+    document.body.insertAdjacentHTML('afterbegin', maHealthBannerHTML); 
+    document.body.insertAdjacentHTML('afterbegin', updateBannerHTML);
     makeBannerDraggable();
     checkForUpdates();
 });
 
-
 window.isMaRestartingProcess = false;
 
+// --- MUSIC ASSISTANT HEALTH MONITOR (Runs every 5 seconds) ---
+// This loop constantly checks if the Music Assistant backend is healthy.
 setInterval(async () => {
+    // STEP 1: Safety Check
+    // If a restart or reconnect process is ALREADY happening, skip this check.
     if (window.isMaRestartingProcess) return;
+    
     try {
-        const res = await fetch(`/api/health?t=${Date.now()}`, { cache: 'no-store' });
+        // STEP 2: Ping the Health Endpoint
+        // append a timestamp (?t=...) to prevent the browser from caching an old response.
+        const res = await fetch(`api/health?t=${Date.now()}`, { cache: 'no-store' });
         const h = await res.json();
         const banner = document.getElementById('mass-error-banner');
         
+        // STEP 3: Handle Unhealthy State (Connection Lost)
         if (h && h.healthy === false) {
-            // Added 'banner &&' to prevent null reference errors
-            if (banner && banner.style.display !== 'flex' && !banner.dataset.dismissed) banner.style.display = 'flex';
+            
+            // Because the backend gatekeeper now intercepts auto-restarts silently,
+            // if this returns false, it means the user WANTS to see the manual banner!
+            if (banner && banner.style.display !== 'flex' && !banner.dataset.dismissed) {
+                banner.style.display = 'flex';
+            }
+            
         } else {
+            // STEP 4: Handle Healthy State (Recovery Successful)
             if (banner) {
                 banner.style.display = 'none';
-                banner.dataset.dismissed = "";
+                banner.dataset.dismissed = ""; // Reset for next time
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        // Catch network errors silently to prevent console spam if the server goes completely offline.
+    }
 }, 5000);
 
 function makeBannerDraggable() {
@@ -122,21 +214,6 @@ function makeBannerDraggable() {
     function closeDragElement() { document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null; header.style.cursor = 'grab'; }
 }
 
-async function dismissMassBanner() {
-    const banner = document.getElementById('mass-error-banner');
-    if(banner) {
-        banner.style.display = 'none'; banner.dataset.dismissed = "true";
-        banner.style.transform = ''; banner.style.left = ''; banner.style.top = '';
-    }
-    try { await fetch('/api/health/reset', { method: 'POST' }); } catch (e) { }
-}
-
-async function restartMassFromBanner(btn) {
-    btn.innerText = "Restarting... (Wait 60s)"; btn.disabled = true; window.isMaRestartingProcess = true;
-    await fetch('/api/admin/restart_ma', { method: 'POST' });
-    dismissMassBanner();
-    setTimeout(() => { btn.innerText = "Restart Service"; btn.disabled = false; window.isMaRestartingProcess = false; }, 60000); 
-}
 
 // --- GLOBAL SYSTEM ACTIONS ---
 window.triggerGlobalAllOff = async function() {
@@ -147,7 +224,7 @@ window.triggerGlobalAllOff = async function() {
 
     try {
         // 1. Fetch current states to know who is currently ON
-        const res = await fetch('/api/status');
+        const res = await fetch('api/status');
         const devices = await res.json();
 
         // 2. OPTIMISTIC UI (Adapts to current page)
@@ -179,7 +256,7 @@ window.triggerGlobalAllOff = async function() {
 
         // 4. Send individual POWER keys
         for (const d of onDevices) {
-            await fetch('/api/key', { 
+            await fetch('api/key', { 
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ ip: d.ip, key: 'POWER' }) 
@@ -205,4 +282,5 @@ window.triggerGlobalAllOff = async function() {
     } finally {
         btns.forEach(b => b.style.opacity = '1');
     }
-}; 
+};
+

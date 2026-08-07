@@ -12,18 +12,32 @@
   <script src="global_ui.js"></script>
 </head>
 <body>
+
+<div id="pin-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:9999; align-items:center; justify-content:center; flex-direction:column;">
+    <div style="background:var(--card-bg,#1e1e2e); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:40px 36px; max-width:340px; width:90%; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.6);">
+        <img src="images/hybrid_icon.png" style="height:48px; margin-bottom:16px; opacity:0.9;">
+        <h2 style="margin:0 0 8px; color:var(--text,#fff); font-size:1.2em; font-weight:600;">Protected Area</h2>
+        <p style="color:rgba(255,255,255,0.5); font-size:0.88em; margin:0 0 24px; line-height:1.5;">Enter your access code to continue.</p>
+        <input type="password" id="pin-input" placeholder="Access code" autocomplete="off"
+            style="width:100%; box-sizing:border-box; padding:12px; font-size:1.1em; border:1px solid rgba(255,255,255,0.15); border-radius:8px; background:rgba(255,255,255,0.07); color:#fff; text-align:center; margin-bottom:8px; letter-spacing:0.1em;"
+            onkeydown="if(event.key==='Enter') submitPin()">
+        <div id="pin-error" style="color:#e74c3c; font-size:0.83em; min-height:18px; margin-bottom:14px;"></div>
+        <button onclick="submitPin()" style="width:100%; padding:12px; background:#3498db; color:#fff; border:none; border-radius:8px; font-size:1em; cursor:pointer; font-weight:500;">Unlock</button>
+    </div>
+</div>
+
 <div class="container">
   <div class="global-nav">
-	<div style="font-weight:700; color:var(--title-color); font-size:1.1em; display:flex; align-items:center; gap:12px; white-space:nowrap; min-width:250px;">
+	<div class="header-brand">
 		<img src="images/hybrid_icon.png" style="height:32px; width:auto;" alt="Logo">
 		Bose SoundTouch Hybrid
 	</div>
     
 	<div class="nav-center-group">
-        <div class="global-link" onmousedown="window.location.href='/control.html'">Remote Control</div>
-        <div class="global-link" onmousedown="window.location.href='/manager.html'">Library Manager</div>
-        <div class="global-link active" onmousedown="window.location.href='/admin.html'">Speaker Admin</div>
-        <div class="global-link" onmousedown="window.location.href='/tools.html'">System Tools</div>
+        <div class="global-link" onmousedown="window.location.href='control.html'">Remote Control</div>
+        <div class="global-link" onmousedown="window.location.href='manager.html'">Library Manager</div>
+        <div class="global-link active" onmousedown="window.location.href='admin.html'">Speaker Admin</div>
+        <div class="global-link" onmousedown="window.location.href='tools.html'">System Tools</div>
     </div>
 
     <div style="min-width:250px; display:flex; justify-content:flex-end;">
@@ -52,13 +66,17 @@
   }
 
   async function loadAdmin() {
-    const statusRes = await fetch('/api/status');
+    const statusRes = await fetch('api/status');
     const devices = await statusRes.json();
     
     document.getElementById('admin-grid').innerHTML = devices.map(d => {
       if (!d.online) return `<div class="card" style="border-style:dashed;"><h3>${d.name}</h3><div style="color:#e74c3c; font-weight:bold; font-size:0.8em; margin-top:10px;">OFFLINE / UNREACHABLE</div></div>`;
       
-      const hasClock = d.type.includes("20") || d.type.includes("30") || d.type.includes("Portable");
+		const typeStr = d.type || "";
+      const hasClock = typeStr.includes("20") || typeStr.includes("30") || typeStr.includes("Portable");
+      // Wave SoundTouch doesn't expose /bassCapabilities — the control just silently
+      // fails on that hardware. Trap on the type string until we confirm SB300's status.
+      const hasBass = !typeStr.includes("Wave");
       
       return `
         <div class="card">
@@ -75,10 +93,10 @@
 
           <div class="control-row">
             <input type="text" id="n-${d.ip}" value="${d.name}" style="background:var(--bg-color); color:var(--text); border:1px solid #777; padding:4px; border-radius:3px;">
-            <button onclick="ren('${d.ip}')">Save</button>
+            <button onclick="ren('${d.ip}', this)">Save</button>
           </div>
           
-          <div class="control-row" style="align-items:flex-start; flex-direction:column; gap:5px;">
+          <div class="control-row ${hasBass ? '' : 'hidden'}" style="align-items:flex-start; flex-direction:column; gap:5px;">
             <div style="display:flex; justify-content:space-between; width:100%;">
                 <label>Bass</label>
                 <span id="bv-${d.ip}" style="color:var(--text); opacity:0.8;">(${d.bass})</span>
@@ -100,7 +118,7 @@
             <button id="ao-${d.ip}" onclick="tA('${d.ip}', this)">...</button>
           </div>
           
-          <div class="control-row"><label>Bluetooth</label><button onclick="pBT('${d.ip}')">Pairing</button></div>	  
+          <div class="control-row"><label>Bluetooth</label><button onclick="pBT('${d.ip}', this)">Pairing</button></div>
           
           <div class="control-row ${hasClock ? '' : 'hidden'}">
             <label>Clock</label>
@@ -129,7 +147,7 @@
       const el = document.getElementById(`br-${idSuffix.split('-')[1]}`); 
       if (bubble && el) {
           const percent = (el.value - el.min) / (el.max - el.min);
-          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          const newLeft = percent * (el.offsetWidth - 20) + (20/2); 
           bubble.style.left = `${newLeft}px`;
           bubble.innerText = el.value;
           bubble.classList.add('visible');
@@ -148,14 +166,14 @@
       if (bubble && el) {
           bubble.innerText = value;
           const percent = (value - el.min) / (el.max - el.min);
-          const newLeft = percent * (el.offsetWidth - 15) + (15/2); 
+          const newLeft = percent * (el.offsetWidth - 20) + (20/2); 
           bubble.style.left = `${newLeft}px`;
       }
   }
 
   async function fetchDeviceState(ip) {
       try {
-          const res = await fetch(`/api/admin/device_status?ip=${ip}`);
+          const res = await fetch(`api/admin/device_status?ip=${ip}`);
           const s = await res.json();
           
           const nameInput = document.getElementById(`n-${ip}`);
@@ -226,7 +244,7 @@
       }
 
       // 2. Send the command to the backend
-      await fetch('/api/admin/key', { 
+      await fetch('api/admin/key', { 
           method: 'POST', 
           headers: {'Content-Type':'application/json'}, 
           body: JSON.stringify({ ip, key: 'POWER' }) 
@@ -236,34 +254,48 @@
       setTimeout(() => fetchDeviceState(ip), 1500); 
   }
   
-  async function ren(ip) { 
+  async function ren(ip, btn) {
+      const orig = btn ? btn.innerHTML : null;
+      if (btn) { btn.disabled = true; btn.textContent = '...'; }
       try {
           const newName = document.getElementById(`n-${ip}`).value;
-          const res = await fetch('/api/admin/name', { 
-              method: 'POST', 
-              headers: {'Content-Type':'application/json'}, 
-              body: JSON.stringify({ ip, name: newName }) 
-          }); 
-          
+          const res = await fetch('api/admin/name', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({ ip, name: newName })
+          });
+
           if (!res.ok) {
               const errText = await res.text();
+              if (btn) { btn.innerHTML = orig; btn.disabled = false; }
               alert("Speaker rejected the name change: " + errText);
-              return; 
+              return;
           }
-          
-          alert("Saved"); 
-          setTimeout(() => fetchDeviceState(ip), 2000); 
+
+          if (btn) {
+              btn.textContent = '✅ Saved — restart app to sync';
+              btn.classList.add('btn-success');
+              setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('btn-success'); btn.disabled = false; }, 5000);
+          }
       } catch (e) {
+          if (btn) { btn.innerHTML = orig; btn.disabled = false; }
           alert("Network error: " + e.message);
       }
   }
 
-  async function sB(ip, value) { await fetch('/api/admin/bass', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, value }) }); }
-  async function pBT(ip) { await fetch('/api/admin/bluetooth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) }); alert("Pairing Mode Active"); }
+  async function sB(ip, value) { await fetch('api/admin/bass', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, value }) }); }
+  async function pBT(ip, btn) {
+      if (btn) { btn.disabled = true; btn.innerText = '...'; }
+      await fetch('api/admin/bluetooth', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
+      if (btn) {
+          btn.innerText = '✅ Active';
+          setTimeout(() => { btn.innerText = 'Pairing'; btn.disabled = false; }, 4000);
+      }
+  }
   
   async function tS(ip, tag, btn) { 
       btn.innerText = "...";
-      const res = await fetch('/api/admin/settings_toggle', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, tag }) }); 
+      const res = await fetch('api/admin/settings_toggle', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip, tag }) }); 
       const d = await res.json(); 
       if(d.error) alert("Error: " + d.error);
       else { btn.innerText = d.state === 'true' ? 'ON' : 'OFF'; btn.className = d.state === 'true' ? 'state-on' : 'state-off'; }
@@ -271,32 +303,31 @@
   
   async function tA(ip, btn) { 
       btn.innerText = "...";
-      const r = await fetch('/api/admin/auto_off', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) }); 
+      const r = await fetch('api/admin/auto_off', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) }); 
       const d = await r.json(); 
       btn.innerText = d.state === 'true' ? 'ON' : 'OFF'; btn.className = d.state === 'true' ? 'state-on' : 'state-off';
   }
 
   async function dS(ip) { 
     const box = document.getElementById(`log-${ip}`); box.style.display = 'block'; box.value = "Scanning...";
-    const res = await fetch(`/api/admin/deepscan?ip=${ip}`);
+    const res = await fetch(`api/admin/deepscan?ip=${ip}`);
     const data = await res.json();
     box.value = Object.entries(data).map(([k, v]) => `=== /${k} ===\n${formatXml(v)}\n`).join('\n');
   }
 
-  async function rebootSpk(ip) {
-      if(!confirm("Are you sure you want to completely reboot this speaker via Telnet? This will take a moment.")) return;
-      await fetch('/api/admin/reboot_speaker', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
-      alert("Telnet Reboot Command sent!");
-  }
-async function triggerAllOff() {
-      try {
-          await fetch('/api/power_off_all', { method: 'POST' });
-          // Instantly refresh the admin grid to show all buttons turning OFF
-          loadAdmin(); 
-      } catch (e) {
-          console.error("Failed to power off speakers", e);
-      }
-  }
+async function rebootSpk(ip) {
+    if(!confirm("Are you sure you want to completely reboot this speaker via Telnet? This will take a moment.\n\n⚠️ Note: Once rebooted, the system will forcefully restart the DLNA and AirPlay providers to restore the socket. Active audio streams on other speakers may momentarily stop.")) return;
+    
+    await fetch('api/admin/reboot_speaker', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
+    alert("✅ Reboot command sent.\n\nThe speaker will be back online in approximately 90 seconds.");
+}
+
+
+
+
+
+
+
 
 async function toggleSource(ip, btn) {
       // 1. OPTIMISTIC UI: Switching source ALWAYS wakes the speaker up natively.
@@ -311,7 +342,7 @@ async function toggleSource(ip, btn) {
 
       try {
           // 2. SEND COMMAND: Let the backend handle the complex Preset -> Stop sequence
-          const r = await fetch('/api/admin/toggle_source', { 
+          const r = await fetch('api/admin/toggle_source', { 
               method: 'POST', 
               headers: {'Content-Type':'application/json'}, 
               body: JSON.stringify({ ip }) 
@@ -327,7 +358,51 @@ async function toggleSource(ip, btn) {
       }
   }
 
+  (async function initRestrictedAccess() {
+      try {
+          const res = await fetch('api/admin/settings');
+          if (!res.ok) return;
+          const s = await res.json();
+          if (!s.restrictedMode || !s.adminPin) return;
+          let token = localStorage.getItem('adminSessionToken');
+          if (token) {
+              const chk = await fetch(`api/admin/check-session?token=${encodeURIComponent(token)}`);
+              if ((await chk.json()).valid) return;
+          }
+          document.getElementById('pin-overlay').style.display = 'flex';
+          setTimeout(() => document.getElementById('pin-input').focus(), 50);
+      } catch (e) {}
+  })();
+
+  async function submitPin() {
+      const pin = document.getElementById('pin-input').value.trim();
+      const errEl = document.getElementById('pin-error');
+      if (!pin) { errEl.textContent = 'Please enter your access code.'; return; }
+      let token = localStorage.getItem('adminSessionToken');
+      if (!token) {
+          token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+          localStorage.setItem('adminSessionToken', token);
+      }
+      try {
+          const res = await fetch('api/admin/verify-pin', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pin, token })
+          });
+          const data = await res.json();
+          if (data.success) {
+              document.getElementById('pin-overlay').style.display = 'none';
+          } else {
+              errEl.textContent = 'Incorrect code. Try again.';
+              document.getElementById('pin-input').value = '';
+              document.getElementById('pin-input').focus();
+          }
+      } catch (e) {
+          errEl.textContent = 'Connection error. Try again.';
+      }
+  }
+
   loadAdmin();
 </script>
 </body>
-</html> 
+</html>

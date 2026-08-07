@@ -1,0 +1,94 @@
+name: "Bose SoundTouch Hybrid"
+version: "v4.2"
+slug: "bose_soundtouch_hybrid"
+description: "An open-source private SoundTouch cloud streaming service and application replacing the deactivated Bose Cloud Service to maintain 100% of the smart speaker functionality of your SoundTouch Speakers and Wireless Link. Physical Presets Included!"
+url: "https://github.com/TJGigs/Bose-SoundTouch-Hybrid"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+
+# Supervisor pulls the tag matching `version:`
+# so a version bump here only takes effect once CI has published that tag.
+image: "ghcr.io/tjgigs/{arch}-addon-bose-soundtouch-hybrid"
+
+startup: application
+boot: auto
+init: false
+
+# Required so speakers on the LAN can reach APP_IP:APP_PORT. Without host
+# networking this add-on would only be reachable at Docker's internal
+# bridge IP, which the presets injected onto the speakers' NVRAM cannot resolve.
+host_network: true
+
+# Native Supervisor API access, needed for restartMassContainer()'s Path 1
+# (routes/mass_utils.js) to restart the Music Assistant add-on via
+# SUPERVISOR_TOKEN. "manager" role is the minimum that can act on add-ons
+# other than itself — untested against a real deployment as of 2026-07-05.
+hassio_api: true
+hassio_role: manager
+
+ingress: true
+# 0 = ask Supervisor to dynamically assign a free host port (get_dynamic_port()
+# in supervisor/ingress.py) instead of guessing a static number that might
+# already be taken — e.g. Z-Wave.js commonly sits on 3000, which is what
+# issue #150 originally reported. Once assigned, Supervisor persists the port
+# to disk keyed by this add-on's slug and returns that same value forever —
+# across add-on restarts, Supervisor restarts, and full HA reboots. It only
+# changes if the add-on is uninstalled and reinstalled.
+ingress_port: 0
+panel_icon: mdi:speaker-wireless
+
+map:
+  - type: addon_config
+    read_only: false
+    path: /app/config
+
+# app_ip/mass_ip left blank by default — run.sh auto-detects the host's address
+# via bashio::network.ipv4_address when unset, since this add-on's host_network:
+# true means APP_IP and MASS_IP are the same machine whenever Music Assistant
+# also runs on this HA instance. Override mass_ip only if MASS runs elsewhere.
+#
+# mass_container_name isn't exposed here: restartMassContainer()'s Path 1
+# (routes/mass_utils.js) discovers the Music Assistant add-on's slug directly
+# via the Supervisor API whenever SUPERVISOR_TOKEN is present, which it always
+# is for this add-on — the manual container-name lookup only matters for the
+# standalone Docker/Topology-A deployments (templates/.env.template).
+#
+# bose_port isn't exposed either — it's a SoundTouch hardware constant (8090)
+# that never changes outside a port-forwarding edge case; hardcoded in run.sh.
+options:
+  mass_username: ""
+  mass_password: ""
+  mass_token: ""
+  app_ip: ""
+  mass_ip: ""
+  mass_port: 8095
+  # Blank = auto (current MASS_IP-derived /24 behavior). Only needed when
+  # speakers live on a different subnet/VLAN than this add-on can infer —
+  # see #143 and Docs/design_subnet_and_hostname_resolution.md.
+  scan_subnet: ""
+  # Overwritten unconditionally by run.sh on every boot with whatever
+  # Supervisor actually assigned — never read as user input. See this
+  # field's description in translations/en.yaml and the ingress_port
+  # comment above for the full explanation.
+  assigned_app_port: 0
+
+schema:
+  mass_username: "str?"
+  mass_password: "password?"
+  mass_token: "password?"
+  app_ip: "str?"
+  mass_ip: "str?"
+  mass_port: port
+  # "str?" like app_ip/mass_ip, not a stricter CIDR-format type — same reason:
+  # a strict schema would reject the blank default and add validation
+  # overhead for no real benefit, since discoverSpeakers() already validates
+  # the value at scan time and logs clearly if it's malformed.
+  scan_subnet: "str?"
+  # int(0,65535), not the "port" type — "port" enforces a minimum of 1, but the
+  # placeholder value before this add-on's first boot (before Supervisor has
+  # ever assigned a real port) is 0, which must still pass validation so
+  # unrelated Configuration saves (MASS credentials, etc.) aren't blocked.
+  assigned_app_port: int(0,65535)
+

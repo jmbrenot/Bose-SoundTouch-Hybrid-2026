@@ -21,6 +21,103 @@ const MASS_BASE_URL = `http://${MASS_IP}:${MASS_PORT}`;
 
 const LIBRARY_FILE = path.join(__dirname, '../config/library.json');
 
+// =======================================================================
+// --- LEGACY MIGRATION: Auto-Heal Old library.json Files ---
+// =======================================================================
+	if (fs.existsSync(LIBRARY_FILE)) {
+    try {
+        let lib = JSON.parse(fs.readFileSync(LIBRARY_FILE, 'utf8'));
+        let migrationNeeded = false;
+
+        lib.forEach(item => {
+            // ONLY migrate if it's a valid Preset (slot > 0)
+            if (item.slot > 0) {
+                // Check if this preset points to a valid Favorite (slot 0)
+                const hasParent = lib.some(parent => parent.slot === 0 && parent.uri === item.uri);
+                
+                if (!hasParent) {
+                    // It's an orphan! Fix by promoting the data to a Favorite
+                    lib.push({
+                        uuid: crypto.randomUUID().split('-')[0],
+                        slot: 0,
+                        speakerIp: "",
+                        name: item.name,
+                        subtitle: item.subtitle,
+                        uri: item.uri,
+                        image: item.image,
+                        type: item.type,
+                        provider: item.provider || 'unknown',
+                        settings: { ...item.settings }
+                    });
+                    migrationNeeded = true;
+                }
+            }
+        });
+
+        // If we found and fixed orphans, save the repaired database
+        if (migrationNeeded) {
+            console.log("[Manager] 🛠️ Legacy library.json detected! Auto-migrating presets to new Parent/Child model...");
+            fs.writeFileSync(LIBRARY_FILE, JSON.stringify(lib, null, 2));
+        }
+    } catch (e) {
+        console.error("[Manager] ⚠️ Failed to run library migration:", e.message);
+    }
+}
+// =======================================================================
+
+// =======================================================================
+// --- BOOT-TIME DEVICE ID RESYNC: Self-heal drifted speakerIp values ---
+// =======================================================================
+// Presets are matched by speakerIp (see getPresetAssignment in utils.js), which
+// goes stale if a speaker isn't on a static IP. Same pattern as
+// syncStereoPairsOnBoot in tools.js: backfill deviceId for entries that predate
+// it (using the current speakers.json — v4 auto-discovery keeps deviceId current
+// there), then correct speakerIp wherever a stored deviceId now resolves to a
+// different IP. Entries with no deviceId (assigned while the speaker wasn't
+// reachable) are left as-is — they self-correct next time that preset is saved
+// while the speaker's online.
+(function syncLibraryPresetsOnBoot() {
+    try {
+        const speakersPath = path.join(process.cwd(), 'config', 'speakers.json');
+        if (!fs.existsSync(LIBRARY_FILE) || !fs.existsSync(speakersPath)) return;
+
+        const speakers = JSON.parse(fs.readFileSync(speakersPath, 'utf8'));
+        const deviceIdToIp = {};
+        const ipToDeviceId = {};
+        for (const s of speakers) {
+            if (s.deviceId) {
+                deviceIdToIp[s.deviceId] = s.ip;
+                ipToDeviceId[s.ip] = s.deviceId;
+            }
+        }
+        if (Object.keys(deviceIdToIp).length === 0) return;
+
+        let lib = JSON.parse(fs.readFileSync(LIBRARY_FILE, 'utf8'));
+        let changed = false;
+
+        for (const item of lib) {
+            if (!(item.slot > 0) || !item.speakerIp) continue;
+
+            if (!item.deviceId) {
+                const knownId = ipToDeviceId[item.speakerIp];
+                if (knownId) {
+                    item.deviceId = knownId;
+                    changed = true;
+                }
+            } else if (deviceIdToIp[item.deviceId] && deviceIdToIp[item.deviceId] !== item.speakerIp) {
+                console.log(`[Manager] Preset "${item.name}" (slot ${item.slot}): speakerIp updated ${item.speakerIp} → ${deviceIdToIp[item.deviceId]}`);
+                item.speakerIp = deviceIdToIp[item.deviceId];
+                changed = true;
+            }
+        }
+
+        if (changed) fs.writeFileSync(LIBRARY_FILE, JSON.stringify(lib, null, 2));
+    } catch (e) {
+        console.error('[Manager] ⚠️ Library preset boot sync error:', e.message);
+    }
+})();
+// =======================================================================
+
 // --- HELPER: API WRAPPER ---
 // Centralizes communication with Music Assistant.
 // Handles authentication (Token fetching) and standardizes error responses.
@@ -166,7 +263,21 @@ function buildSubtitle(i, cat, showType = false) {
         let artist = getName(i.artist) || getName(i.artists?.[0]) || getName(i.metadata?.artist);
         if (artist) parts.push(artist);
     }
-    
+    // 4. PODCAST (show-level)
+    else if (cat === 'podcast') {
+        if (i.publisher) parts.push(i.publisher);
+    }
+    // 5. PODCAST EPISODE
+    else if (cat === 'podcast_episode') {
+        const show = i.podcast?.name || (typeof i.podcast === 'string' ? i.podcast : null);
+        if (show) parts.push(show);
+    }
+    // 6. AUDIOBOOK
+    else if (cat === 'audiobook') {
+        const author = Array.isArray(i.authors) ? i.authors[0] : i.authors;
+        if (author) parts.push(author);
+    }
+
     // Finally, append the provider to the end
     parts.push(pName);
     return parts.join(' • ');
@@ -174,9 +285,9 @@ function buildSubtitle(i, cat, showType = false) {
 
 
 // --- HELPER: SEARCH FILTER ---
-// Determines if an item belongs to the selected source (Spotify, Radio, or NAS/Local).
+// Determines if a search result item belongs to the requested provider domain.
+// activeSource is either 'global' (pass all) or a MASS provider domain key (e.g. 'spotify', 'tunein', 'filesystem_local').
 function isSourceMatch(item, activeSource) {
-    // NEW: If Global is selected, bypass all filters and let everything through!
     if (activeSource === 'global')
         return true;
 
@@ -184,17 +295,7 @@ function isSourceMatch(item, activeSource) {
     const providers = (item.provider_mappings || []).map(p => (p.provider_domain || '').split('--')[0]);
     const mainProvider = (item.provider || '').split('--')[0];
 
-    if (activeSource === 'spotify') {
-        return providers.includes('spotify') || mainProvider === 'spotify';
-    }
-    if (activeSource === 'radio') {
-        return true; 
-    }
-    if (activeSource === 'nas') {
-        // NAS includes everything that IS NOT Spotify or Radio
-        return !providers.includes('spotify') && mainProvider !== 'spotify' && mainProvider !== 'radio';
-    }
-    return false;
+    return providers.includes(activeSource) || mainProvider === activeSource || mainProvider.startsWith(activeSource + '--');
 }
 
 // --- PROXY ENDPOINT ---
@@ -272,7 +373,8 @@ router.get('/manager/providers', async(req, res) => {
         
         const results = musicProviders.map(p => ({
             domain: p.domain,
-            name: p.name || p.domain
+            name: p.name || p.domain,
+            icon: p.icon || null
         }));
         
         if (results.length > 0) {
@@ -316,23 +418,25 @@ router.get('/manager/providers', async(req, res) => {
 // --- 1. SEARCH ENDPOINT ---
 // Performs a unified search across Music Assistant providers.
 router.post('/manager/search', async(req, res) => {
-    let { query, source, type, limit, providerFilter } = req.body;
-    let searchLimit = parseInt(limit) || 100;
-    if (searchLimit > 1000)
-        searchLimit = 1000;
+    let { query, source, sourceType, type, limit, providerFilter } = req.body;
+    let searchLimit = parseInt(limit) || 25;
+    if (searchLimit > 100)
+        searchLimit = 100;
     if (!query || query.trim() === "")
         return res.json([]);
 
+    const isRadioSource = (source === 'radio' || sourceType === 'radio');
+
     // Force 'all' search for radio to ensure we catch stations
-    if (source === 'radio')
+    if (isRadioSource)
         type = 'all';
 
     try {
         let mediaTypes = ["artist", "album", "track", "playlist"];
-        if (source === 'radio')
+        if (isRadioSource)
             mediaTypes = ["radio"];
         if (source === 'global')
-            mediaTypes.push("radio"); // Add radio to Global searches
+            mediaTypes.push("radio", "podcast", "podcast_episode", "audiobook");
 
         // 1. Fetch Data
         const data = await massRequest("music/search", {
@@ -393,20 +497,27 @@ router.post('/manager/search', async(req, res) => {
                     if (!hasArt) return; 
                 }
                 
-                // --- STRICT TEXT MATCHING (Updated for NAS Metadata) ---
-                let content = safeStr(i.name);
-                
-                // Ensure we catch metadata specific to NAS files
-                let artName = i.artist?.name || i.artist || i.metadata?.artist || "";
-                let albName = i.album?.name || i.album || i.metadata?.album || "";
-                
-                content += " " + safeStr(artName) + " " + safeStr(albName);
-                
-                if (i.artists) {
-                    i.artists.forEach(a => content += " " + safeStr(a.name || a));
-                }
+                // --- STRICT TEXT MATCHING (Updated for NAS Metadata) — DISABLED 2026-07-14 ---
+                // This re-filtered MASS's own search results by requiring the query to appear
+                // as a literal substring in name+artist+album. MASS's music/search already does
+                // provider-side relevance matching; this extra gate silently dropped legitimate
+                // results whenever the match wasn't literal — worst on radio, where station names
+                // are branded and rarely contain the search term verbatim (e.g. "jazz" won't
+                // literally match "SmoothVibes 102.3"). Confirmed root cause of a user report of
+                // "No results found" on station search. Origin unclear (likely v1, possibly a fix
+                // for one provider's loose NAS metadata that never got scoped to just that
+                // provider) — commented out rather than deleted since we don't remember the
+                // original reason. If results start looking noisy/irrelevant after this, start here.
+                //
+                // let content = safeStr(i.name);
+                // let artName = i.artist?.name || i.artist || i.metadata?.artist || "";
+                // let albName = i.album?.name || i.album || i.metadata?.album || "";
+                // content += " " + safeStr(artName) + " " + safeStr(albName);
+                // if (i.artists) {
+                //     i.artists.forEach(a => content += " " + safeStr(a.name || a));
+                // }
 
-                if ((type === 'all' || type === cat) && content.includes(qLower)) {
+                if (type === 'all' || type === cat || (type === 'podcast' && cat === 'podcast_episode')) {
                     categoryItems.push({
                         uri: i.uri,
                         name: utils.scrubText(i.name),
@@ -425,7 +536,10 @@ router.post('/manager/search', async(req, res) => {
                         artist: 'Artists',
                         album: 'Albums',
                         track: 'Tracks',
-                        radio: 'Radio'
+                        radio: 'Radio',
+                        podcast: 'Podcasts',
+                        podcast_episode: 'Podcast Episodes',
+                        audiobook: 'Audiobooks'
                     };
                     results.push({
                         type: 'HEADER',
@@ -436,15 +550,19 @@ router.post('/manager/search', async(req, res) => {
             }
         };
 
-        if (source === 'radio') {
+        if (isRadioSource) {
             processList(data.radio, 'radio');
         } else {
             processList(data.playlists, 'playlist');
             processList(data.artists, 'artist');
             processList(data.albums, 'album');
             processList(data.tracks, 'track');
-            if (source === 'global')
-                processList(data.radio, 'radio'); // Process radio items if Global
+            if (source === 'global') {
+                processList(data.radio, 'radio');
+                processList(data.podcasts, 'podcast');
+                processList(data.podcast_episodes, 'podcast_episode');
+                processList(data.audiobooks, 'audiobook');
+            }
         }
 
         res.json(results);
@@ -511,6 +629,7 @@ router.get('/manager/recents', async(req, res) => {
                 provider: (i.provider_mappings?.[0]?.provider_domain) || i.provider || 'unknown'
             };
         });
+
         res.json(results);
     } catch (e) {
         res.json([]);
@@ -590,65 +709,118 @@ router.get('/manager/library', (req, res) => {
         res.json([]);
 });
 
-router.post('/manager/save', (req, res) => {
-    const { uuid, name, uri, image, type, slot, settings, subtitle, speakerIp, provider } = req.body;
+router.post('/manager/save', async (req, res) => {
+    const { uuid, name, image, type, slot, settings, subtitle, speakerIp, provider } = req.body;
+    // Strip provider instance IDs at save time so library.json never stores stale instance
+    // references (e.g. spotify--UgwRanCa:// → spotify://). Prevents duplicates and broken
+    // presets if the user re-adds a provider and its instance ID changes.
+    const uri = (req.body.uri || "").replace(/^([a-zA-Z_]+)--[^:]+:\/\//, '$1://');
     let lib = fs.existsSync(LIBRARY_FILE) ? JSON.parse(fs.readFileSync(LIBRARY_FILE)) : [];
 
-    // Ensure unique slot assignment within the given scope
     const targetSlot = parseInt(slot) || 0;
     const targetIp = speakerIp || "";
 
-    if (targetSlot > 0) {
-        lib.forEach(i => {
-            const existingIp = i.speakerIp || "";
-            if (i.slot === targetSlot && existingIp === targetIp) {
-                i.slot = 0;
-            }
-        });
+    // Best-effort deviceId capture so the boot-time sync (syncLibraryPresetsOnBoot,
+    // below) can correct this entry's speakerIp later if the speaker's IP ever
+    // drifts. Single attempt, no retry — if the speaker isn't reachable right now,
+    // this entry just won't be auto-correctable until it's saved again while online.
+    const deviceId = (targetSlot > 0 && targetIp) ? await utils.fetchSpeakerDeviceId(targetIp) : null;
+
+    // ==============================================================
+    // RULE 1 & 2: THE FAVORITES POOL SEPARATION & MULTI-ASSIGNMENT
+    // ==============================================================
+    
+    // 1. ALWAYS ensure an immortal "Favorite" (slot 0) exists in the pool for this URI
+    let favItem = lib.find(i => i.slot === 0 && i.uri === uri);
+    if (!favItem) {
+        favItem = {
+            uuid: crypto.randomUUID().split('-')[0],
+            slot: 0,
+            speakerIp: "",
+            name, subtitle: subtitle || type, uri, image, type, provider: provider || 'unknown',
+            settings: { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' }
+        };
+        lib.push(favItem);
+    } else {
+        // Display metadata (name/art) always stays in sync across the Favorite and
+        // any Preset assignments of the same content. Playback settings do NOT —
+        // shuffle/repeat are independent per row, so the Favorite's own settings
+        // only get touched here when the Favorite itself is what's being edited
+        // (targetSlot === 0). Editing a Preset's settings must not leak onto it.
+        favItem.name = name;
+        favItem.image = image;
+        if (targetSlot === 0) {
+            favItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        }
     }
 
-    let itemIndex = -1;
-    if (uuid)
-        itemIndex = lib.findIndex(i => i.uuid === uuid);
+    // 2. Handle the specific Preset Assignment
+    if (targetSlot > 0) {
+        // First, explicitly clear any existing preset sitting in this exact destination slot
+        lib = lib.filter(i => !(i.slot === targetSlot && (i.speakerIp || "") === targetIp && i.uuid !== uuid));
 
-    const newItem = {
-        uuid: uuid || crypto.randomUUID().split('-')[0],
-        slot: targetSlot,
-        speakerIp: targetIp,
-        name,
-        subtitle: subtitle || type,
-        uri,
-        image,
-        type,
-		provider: provider || 'unknown', 
-        settings: {
-            shuffle: settings?.shuffle || false,
-            repeat: settings?.repeat || 'off'
+        // Check if we are actively editing an existing preset
+        let presetItem = null;
+        if (uuid) {
+            const originalItem = lib.find(i => i.uuid === uuid);
+            if (originalItem && originalItem.slot > 0) {
+                presetItem = originalItem;
+            }
         }
-    };
 
-    if (itemIndex >= 0)
-        lib[itemIndex] = newItem;
-    else
-        lib.push(newItem);
+        if (presetItem) {
+            // Update the existing preset's pointers
+            presetItem.slot = targetSlot;
+            presetItem.speakerIp = targetIp;
+            if (deviceId) presetItem.deviceId = deviceId;
+            presetItem.name = name;
+            presetItem.settings = { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' };
+        } else {
+            // We are saving a brand new preset assignment
+            lib.push({
+                uuid: crypto.randomUUID().split('-')[0],
+                slot: targetSlot,
+                speakerIp: targetIp,
+                ...(deviceId && { deviceId }),
+                name, subtitle: subtitle || type, uri, image, type, provider: provider || 'unknown',
+                settings: { shuffle: settings?.shuffle || false, repeat: settings?.repeat || 'off' }
+            });
+        }
+    } else {
+        // RULE 3: SCOPED UNASSIGNMENT
+        // targetSlot === 0 means the user selected "Unassign".
+        // If they were editing a Preset and set it to 0, we delete the preset pointer.
+        if (uuid) {
+            const originalIndex = lib.findIndex(i => i.uuid === uuid);
+            if (originalIndex >= 0 && lib[originalIndex].slot > 0) {
+                lib.splice(originalIndex, 1);
+            }
+        }
+    }
 
     fs.writeFileSync(LIBRARY_FILE, JSON.stringify(lib, null, 2));
-    res.json({
-        success: true
-    });
+    res.json({ success: true });
 });
 
 router.delete('/manager/delete/:uuid', (req, res) => {
-    if (!fs.existsSync(LIBRARY_FILE))
-        return res.json({
-            success: true
-        });
+    if (!fs.existsSync(LIBRARY_FILE)) return res.json({ success: true });
     let lib = JSON.parse(fs.readFileSync(LIBRARY_FILE));
-    lib = lib.filter(i => i.uuid !== req.params.uuid);
-    fs.writeFileSync(LIBRARY_FILE, JSON.stringify(lib, null, 2));
-    res.json({
-        success: true
-    });
+
+    const itemToDelete = lib.find(i => i.uuid === req.params.uuid);
+    if (itemToDelete) {
+        if (itemToDelete.slot === 0) {
+            // RULE 4: CASCADING DELETE
+            // Hard-deleting a Favorite from the pool wipes it from all preset assignments too!
+            lib = lib.filter(i => i.uri !== itemToDelete.uri);
+        } else {
+            // RULE 3: CLEARING
+            // Deleting a Preset just drops the pointer. The Favorite remains safe!
+            lib = lib.filter(i => i.uuid !== req.params.uuid);
+        }
+        fs.writeFileSync(LIBRARY_FILE, JSON.stringify(lib, null, 2));
+    }
+
+    res.json({ success: true });
 });
 
 // --- 5. CUSTOM URL STREAMING & HISTORY ---
@@ -706,4 +878,4 @@ router.post('/manager/play_stream', async(req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

@@ -21,17 +21,153 @@ const LAST_METADATA = {};
 const STOP_TIMERS = {}; // Replaces STOP_COUNTS for WebSocket time
 const EXPECTATIONS = {}; // Tracks active UI Locks
 const TRACK_TIME_ANCHOR = {}; // Fixes Bose gapless time accumulation
+const AIRPLAY_PAUSE_INTENT = {}; // ip → true when user paused AirPlay (session terminates, not a real stop)
+const AIRPLAY_RESUME_DEBOUNCE = {}; // ip → true, prevents rapid re-trigger on remote resume
+const AIRPLAY_PENDING_RESUME = {}; // ip → true when remote PLAY_PAUSE was pressed during teardown window (before INVALID_SOURCE)
+const DLNA_PAUSE_INTENT = {}; // ip → true when hardware remote paused a DLNA stream (MASS not yet synced)
+const USER_ACTIVITY_TIMER = {};   // ip → timeout handle for coalescing remote resume detection
 const WAKE_MEMORY = {}; // App Mem for Behavior 4
 const AUTO_RESUME_TIMERS = {}; // Tracks timers thy can be cancelled if interrupted
-// Strict evaluation: Feature is disabled (false) by default. 
-// It only activates (true) if AUTO_RESUME_PRESET=true is explicitly defined in the .env file.
-const AUTO_RESUME_PRESET = typeof process.env.AUTO_RESUME_PRESET === 'string' && process.env.AUTO_RESUME_PRESET.trim().toLowerCase() === 'true';
+
+// Registered by server.js after boot to enforce MASS player config for speakers
+// that were offline at boot and connect for the first time via WebSocket.
+let _lateJoinCallback = null;
+function setLateJoinCallback(fn) { _lateJoinCallback = fn; }
+
+// --- PERSISTENT AUTO-RESUME STATE ---
+const RESUME_STATE_PATH = path.join(process.cwd(), 'config', 'resume_state.json');
+
+function saveResumeState() {
+    try {
+        fs.writeFileSync(RESUME_STATE_PATH, JSON.stringify(WAKE_MEMORY, null, 2));
+    } catch (e) {
+        console.error('[DeviceState] ⚠️ Failed to save resume_state.json:', e.message);
+    }
+}
+
+const EXTENDED_PRESET_SLOTS = new Set([11, 22, 33, 44, 55, 66]);
+
+// Clears ALL auto-resume entries from memory and disk.
+// Called from tools.js when autoResumePreset is disabled.
+function clearAllResumeState() {
+    const count = Object.keys(WAKE_MEMORY).length;
+    for (const ip of Object.keys(WAKE_MEMORY)) delete WAKE_MEMORY[ip];
+    try {
+        fs.writeFileSync(RESUME_STATE_PATH, JSON.stringify({}, null, 2));
+    } catch (e) {
+        console.error('[DeviceState] ⚠️ Failed to clear resume_state.json:', e.message);
+    }
+    if (count > 0)
+        console.log(`[DeviceState] 🧹 Auto-resume disabled — cleared ${count} saved preset entry(s) from resume_state.json.`);
+}
+
+// Removes extended-slot entries (11,22,33,44,55,66) from WAKE_MEMORY and persists to disk.
+// Called at boot when extended presets are off, and from tools.js when the setting is disabled.
+function pruneExtendedPresetsFromMemory() {
+    const before = Object.keys(WAKE_MEMORY).length;
+    for (const ip of Object.keys(WAKE_MEMORY)) {
+        if (EXTENDED_PRESET_SLOTS.has(WAKE_MEMORY[ip])) delete WAKE_MEMORY[ip];
+    }
+    const removed = before - Object.keys(WAKE_MEMORY).length;
+    if (removed > 0) {
+        console.log(`[DeviceState] 🧹 Pruned ${removed} extended preset entry(s) from auto-resume state (extended presets are disabled).`);
+        saveResumeState();
+    }
+}
+
+// Load persisted resume state on startup.
+// Prunes IPs not in speakers.json and extended preset slots when extended presets are disabled.
+(function loadResumeState() {
+    try {
+        if (!fs.existsSync(RESUME_STATE_PATH)) return;
+
+        const speakersPath = path.join(process.cwd(), 'config', 'speakers.json');
+        const knownIps = new Set(
+            fs.existsSync(speakersPath)
+                ? JSON.parse(fs.readFileSync(speakersPath, 'utf8')).map(s => s.ip)
+                : []
+        );
+
+        let extendedEnabled = false;
+        try {
+            const settingsPath = path.join(process.cwd(), 'config', 'settings.json');
+            if (fs.existsSync(settingsPath)) {
+                extendedEnabled = JSON.parse(fs.readFileSync(settingsPath, 'utf8')).doubleTapPresets === true;
+            }
+        } catch (e) { /* settings unreadable — default to false (safe) */ }
+
+        const saved = JSON.parse(fs.readFileSync(RESUME_STATE_PATH, 'utf8'));
+        let pruned = false;
+        let prunedExtended = 0;
+
+        for (const [ip, presetId] of Object.entries(saved)) {
+            if (knownIps.size > 0 && !knownIps.has(ip)) { pruned = true; continue; }
+
+            const isStandard = Number.isInteger(presetId) && presetId >= 1 && presetId <= 6;
+            const isExtended = Number.isInteger(presetId) && EXTENDED_PRESET_SLOTS.has(presetId);
+
+            if (isStandard) {
+                WAKE_MEMORY[ip] = presetId;
+            } else if (isExtended && extendedEnabled) {
+                WAKE_MEMORY[ip] = presetId;
+            } else if (isExtended && !extendedEnabled) {
+                pruned = true;
+                prunedExtended++;
+            }
+        }
+
+        if (pruned) {
+            fs.writeFileSync(RESUME_STATE_PATH, JSON.stringify(WAKE_MEMORY, null, 2));
+            if (prunedExtended > 0)
+                console.log(`[DeviceState] 🧹 resume_state.json: ${prunedExtended} extended preset entry(s) discarded (extended presets are disabled).`);
+            else
+                console.log('[DeviceState] 🧹 resume_state.json: orphan IPs pruned.');
+        }
+
+        const count = Object.keys(WAKE_MEMORY).length;
+        if (count > 0) console.log(`[DeviceState] Auto-resume state loaded: ${count} speaker(s).`);
+    } catch (e) {
+        console.error('[DeviceState] ⚠️ Could not load resume_state.json:', e.message);
+    }
+})();
 
 // BAD_META: List of keywords indicating the speaker is not playing real content.
 const BAD_META = ["MUSIC ASSISTANT", "READY", "OBJECT", "LOADING...", "", "AIRPLAY", "UNKNOWN", "STOPPED", "STANDBY", "UPNP", "INVALID_SOURCE", "NULL"];
-
 // --- HELPERS (UNTOUCHED) ---
 const isBadMeta = (t) => !t || BAD_META.includes(t.toUpperCase());
+
+
+// --- DYNAMIC SETTINGS READER ---
+let settingsErrorLogged = false;
+function getAutoResumeSetting() {
+    try {
+        const settingsFile = path.join(process.cwd(), 'config', 'settings.json');
+        
+        if (fs.existsSync(settingsFile)) {
+            const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+            
+            // If it succeeds, reset the error flag so it warn again if it breaks later
+            settingsErrorLogged = false; 
+            
+            return settings.autoResumePreset === true;
+        } else {
+            // File doesn't exist
+            if (!settingsErrorLogged) {
+                console.log(`[DeviceState] ⚠️ settings.json not found. Defaulting auto-resume to FALSE.`);
+                settingsErrorLogged = true; //Marks the error as logged
+            }
+        }
+    } catch (e) {
+        // File exists but is corrupted, locked, or unreadable
+        if (!settingsErrorLogged) {
+            console.log(`[DeviceState] ⚠️ Could not read settings.json (${e.message}). Defaulting auto-resume to FALSE.`);
+            settingsErrorLogged = true; // Marks the error as logged
+        }
+    }
+    
+    return false; //default fallback value is false
+}
+
 
 function cleanContentItem(raw, playStatus) {
     if (!raw) return { source: "Ready" };
@@ -86,7 +222,7 @@ function resolveMetadataAndStatus(nativeData, massData, source, isPausedByShadow
     let isMaActive = false; 
     
     if (massData) {
-        if ((massData.state === 'idle' || massData.state === 'stopped') && !mass.isRecovering(deviceIp)) {
+        if ((massData.state === 'idle' || massData.state === 'stopped') && !mass.isRecovering(deviceIp) && !isPausedByShadow) {
             finalStatus = 'STOP_STATE';
             wipeMetadata = true;
         } else if (isPausedByShadow) {
@@ -149,17 +285,29 @@ function resolveMetadataAndStatus(nativeData, massData, source, isPausedByShadow
 // =========================================================
 // --- HELPER: BEHAVIOR 4 (AUTO-RESUME PRESET) ---
 // =========================================================
-function handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus) {
-    if (!AUTO_RESUME_PRESET) return; // Exit immediately if the user disabled this feature
+function handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus, source) {
+    if (!getAutoResumeSetting()) return; // Check settings.json
 
-    // 1. RECORDING
+    // 1. RECORDING & CANCELLATION
     if (!isStandby) {
+        const userIsLoadingSomething = EXPECTATIONS[ip] && (EXPECTATIONS[ip].type === 'PRESET' || EXPECTATIONS[ip].type === 'TRACK');
+        // Guard against stale-cache contradictions: INVALID_SOURCE or Ready combined with a
+        // leftover PLAY_STATE from the previous stream is not real playback — don't wipe memory on it.
+        const isGenuineStream = finalPlayStatus === 'PLAY_STATE' && source !== 'INVALID_SOURCE' && source !== 'Ready' && source;
+
+        if (AUTO_RESUME_TIMERS[ip] && (activePreset > 0 || isGenuineStream || userIsLoadingSomething)) {
+            console.log(`[DeviceState] Auto-Resume Cancelled: Speaker natively loaded a source or user action detected.`);
+            clearTimeout(AUTO_RESUME_TIMERS[ip]);
+            AUTO_RESUME_TIMERS[ip] = null;
+        }
+
         if (activePreset > 0) {
-            // Playing a preset -> Remember it for the next boot
             WAKE_MEMORY[ip] = activePreset;
-        } else if (finalPlayStatus === 'PLAY_STATE') {
-            // Playing generic Wi-Fi stream -> Forget memory so it boots to vanilla Wi-Fi
-            delete WAKE_MEMORY[ip]; 
+            saveResumeState();
+        } else if (isGenuineStream) {
+            // Playing genuine non-preset stream -> forget memory so it boots to vanilla Wi-Fi
+            delete WAKE_MEMORY[ip];
+            saveResumeState();
         }
     }
     
@@ -168,8 +316,17 @@ function handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus) {
     if (oldState && oldState.isStandby && !isStandby) {
         // The speaker just woke up!
         if (WAKE_MEMORY[ip]) {
+            
+            // 🛑 CRITICAL BYPASS (ISSUE #55 FIX): 
+            // Check if the user woke the speaker by pressing a physical preset button or app button.
+            // If EXPECTATIONS has a PRESET lock, we absolutely know a command is already in flight!
+            if (EXPECTATIONS[ip] && EXPECTATIONS[ip].type === 'PRESET') {
+                console.log(`[DeviceState] Auto-Resume Bypassed: User woke speaker via Preset action.`);
+                return; 
+            }
+
             const presetId = WAKE_MEMORY[ip];
-            console.log(`\n[DeviceState] 🌅 Auto-Resume Enabled: Waking up ${ip}. Resuming Preset ${presetId}...`);
+            console.log(`\n[DeviceState] Auto-Resume Enabled: Waking up ${ip}. Resuming Preset ${presetId}...`);
             
             // Clear any old pending timers
             if (AUTO_RESUME_TIMERS[ip]) clearTimeout(AUTO_RESUME_TIMERS[ip]);
@@ -177,13 +334,9 @@ function handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus) {
             // Wait 2.5 seconds for the speaker's network stack to fully settle
             AUTO_RESUME_TIMERS[ip] = setTimeout(async () => {
                 
-                // --- THE FIX (ISSUE #55) ---
-                // If user physically pressed preset to turn the speaker ON,
-                // bridge will have updated the preset memory timestamp within the last few seconds.
-                // SO bypass auto-resume so not to interrupt the new selection
-                const mem = mass.getPresetMemory(ip);
-                if (mem && (Date.now() - mem.timestamp < 5000)) {
-                    console.log(`[DeviceState] 🛑 Auto-Resume Bypassed: User woke speaker via Preset ${mem.id}.`);
+                // Double check right before firing just to be safe
+                if (EXPECTATIONS[ip] && EXPECTATIONS[ip].type === 'PRESET') {
+                    console.log(`[DeviceState] Auto-Resume Bypassed at Execution: User initiated action.`);
                     return; 
                 }
 
@@ -210,8 +363,8 @@ function evaluateExpectationLocks(ip, finalTrack, finalPlayStatus, isStandby, is
 
     // 1. Check for Safety Timeout
     if (Date.now() > exp.expires) {
-        console.log(`[DeviceState] 🔓 Safety Timeout: UI Unlocked for ${ip}`);
-        console.log(`[DeviceState] 🚨 Deleting EXPECTATION lock for ${ip}!`);
+        console.log(`[DeviceState] Safety Timeout: UI Unlocked for ${ip}`);
+        console.log(`[DeviceState] Deleting EXPECTATION lock for ${ip}!`);
         delete EXPECTATIONS[ip];
         return true;
     }
@@ -239,34 +392,60 @@ function evaluateExpectationLocks(ip, finalTrack, finalPlayStatus, isStandby, is
 
     // 3. Resolve the lock
     if (lockMet) {
-        console.log(`[DeviceState] 🔓 Lock Met (${exp.type}): UI Unlocked for ${ip}`);
-        console.log(`[DeviceState] 🚨 Deleting EXPECTATION lock for ${ip}`);
+        console.log(`[DeviceState] Lock Met (${exp.type}): UI Unlocked for ${ip}`);
+        console.log(`[DeviceState] Deleting EXPECTATION lock for ${ip}`);
         delete EXPECTATIONS[ip];
         return true;
     } else {
         return false; // 🚫 REJECT THE OVERWRITE! KEEP THE UI LOCKED!
     }
 }
-
-
-
-// ---  AUTO-HEALING WEBSOCKET INITIALIZER ---
+// --- AUTO-HEALING WEBSOCKET INITIALIZER ---
 async function initDevice(device) {
-    console.log(`[DeviceState] 🔌 Initializing WebSocket for ${device.name} (${device.ip})`);
+    console.log(`[DeviceState] 🔌 Initializing Hybrid Engine for ${device.name} (${device.ip})`);
     
-    // 1. Setup Baseline Cache (Only if it doesn't exist, to preserve locks during reconnects)
+    // 1. Setup Baseline Cache
     if (!NATIVE_CACHE[device.ip]) {
         NATIVE_CACHE[device.ip] = { device: device, playStatus: 'STOP_STATE', volume: 0, nowPlaying: {} };
-        FINAL_STATE[device.ip] = { ...device, online: true, readyForDisplay: true };
+        FINAL_STATE[device.ip] = { ...device, online: false, readyForDisplay: true };
     }
-    // --- Exponential Backoff State ---
+    
     let reconnectDelay = 5000;
     let failedAttempts = 0;
-	let isPoisoned = false; // Tracks if the current track contains socket-killing bytes
+    let activeWs = null; // Stores the socket so the watchdog can kill it
 
-    // Wrap the connection logic so it can restart itself
+    // 🌟 THE PERMANENT HTTP WATCHDOG (Online & Offline) 🌟
+    // A lightweight pulse running in both directions, exactly as you designed.
+    setInterval(async () => {
+        try {
+            await axios.get(`http://${device.ip}:8090/info`, { timeout: 2500 });
+            
+            // SPEAKER IS ALIVE!
+            if (FINAL_STATE[device.ip] && FINAL_STATE[device.ip].online === false) {
+                console.log(`[DeviceState] ☀️ Watchdog detected ${device.ip} is back online!`);
+                FINAL_STATE[device.ip].online = true;
+                if (global.WATCHDOG_SPEAKERS?.includes(device.ip)) {
+                    utils.appendWatchdogLog(device.ip, { ts: new Date().toISOString(), type: 'speaker_online' });
+                }
+                // Force an immediate fetch to instantly expand the UI card
+                await processSettledState(device.ip);
+            }
+        } catch (e) {
+            // SPEAKER IS DEAD!
+            if (FINAL_STATE[device.ip] && FINAL_STATE[device.ip].online === true) {
+                console.log(`[DeviceState] 🌩️ Watchdog detected ${device.ip} dropped offline.`);
+                FINAL_STATE[device.ip].online = false;
+                if (global.WATCHDOG_SPEAKERS?.includes(device.ip)) {
+                    utils.appendWatchdogLog(device.ip, { ts: new Date().toISOString(), type: 'speaker_offline' });
+                }
+                // Forcefully kill the zombie WebSocket
+                if (activeWs) activeWs.terminate();
+            }
+        }
+    }, 5000);
+
+    // Wrap the connection logic
     async function fetchInitialAndConnect() {
-        // 2. INITIAL SEED FETCH (Catches up on missed tracks like Mozart after a drop!)
         try {
             const [npRes, volRes] = await Promise.all([
                 axios.get(`http://${device.ip}:8090/now_playing`, { timeout: 3500 }).catch(() => null),
@@ -274,8 +453,7 @@ async function initDevice(device) {
             ]);
             const parser = new xml2js.Parser({ explicitArray: false });
             
-			if (npRes && npRes.data) {
-                // --- THE HTTP SCRUBBER ---
+            if (npRes && npRes.data) {
                 let cleanXml = npRes.data.replace(/\ufffd/g, 'a').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
                 const npData = await parser.parseStringPromise(cleanXml);
                 if (npData.nowPlaying) {
@@ -290,125 +468,178 @@ async function initDevice(device) {
                     NATIVE_CACHE[device.ip].volume = parseInt(volData.volume.actualvolume);
                 }
             } 
-        } catch (e) {
-            // Silently ignore HTTP seed failures on sleeping devices
-        }
+        } catch (e) {}
 
-        // 3. Process the state so the UI updates immediately
-        // Only print the UI State block if it's the first few attempts to prevent spam
         const originalLog = console.log;
-        if (failedAttempts >= 3) console.log = function() {}; // Mute standard logs temporarily
+        if (failedAttempts >= 3) console.log = function() {}; 
         await processSettledState(device.ip);
-        console.log = originalLog; // Restore logs
+        console.log = originalLog; 
 
-		// 4. Start the WebSocket Listener
+        // Start the WebSocket
         const ws = new WebSocket(`ws://${device.ip}:8080`, 'gabbo');
-		
+        activeWs = ws; // Save to global scope so watchdog can access it
+
         ws.on('open', () => {
             if (failedAttempts > 0 && !POISONED_DEVICES[device.ip]) {
-                console.log(`[DeviceState] 🔌 WS Reconnected to ${device.ip}! Resuming normal operations.`);
+                console.log(`[DeviceState] 🔌 WS Reconnected to ${device.ip}!`);
             }
             if (!POISONED_DEVICES[device.ip]) {
                 reconnectDelay = 5000;
                 failedAttempts = 0;
             }
+            // If this speaker was offline at boot, trigger config enforcement now that
+            // it has connected. The callback runs after a 12s settle (MA needs time to
+            // recognize the speaker and hydrate its protocol config keys).
+            if (global.MISSED_AT_BOOT?.has(device.ip)) {
+                global.MISSED_AT_BOOT.delete(device.ip);
+                console.log(`[DeviceState] 🆕 ${device.ip} online for first time after boot miss — triggering MASS config enforcement.`);
+                if (_lateJoinCallback) _lateJoinCallback(device.ip);
+            }
         });
 
         ws.on('message', async (data) => {
             try {
-                // 1. Convert the raw WebSocket buffer to a string first
                 let rawXml = data.toString('utf8');
-                
-				// --- 🚨 THE UNFILTERED RAW WEBSOCKET LOGGER 🚨 ---
-                // prints everything before the code can filter it out
-                if (global.DEBUG_MODE) {
-                    console.log(`\n[RAW WS DUMP] 📥 from ${device.ip}:`);
-                    console.log(rawXml);
-                    console.log(`--------------------------------------\n`);
-                }
-
-                // 2. THE PRE-SCRUBBER: Sanitize the raw XML before parsing
                 rawXml = rawXml.replace(/\ufffd/g, 'a').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-
-                // 3. Give clean XML to strict parser
+                if (global.DEBUG_MODE) console.log(`[DeviceState] \ud83d\udd0d WS Raw [${device.ip}]: ${rawXml}`);
                 const parser = new xml2js.Parser({ explicitArray: false });
                 const result = await parser.parseStringPromise(rawXml);
 
-                // If it's not a standard update, we still return
+                // userActivityUpdate: fires on ANY physical remote button press (play, volume, preset, power).
+                // Not wrapped in <updates> so it falls through normal processing.
+                // We use coalescing to identify PLAY_PAUSE specifically: it is the only button that
+                // fires userActivityUpdate with NO subsequent state event (nowPlayingUpdated /
+                // volumeUpdated / nowSelectionUpdated) when the speaker is in INVALID_SOURCE.
+                // Volume → also fires volumeUpdated. Presets → also fire nowSelectionUpdated.
+                // Power → also fires nowPlayingUpdated (STANDBY). Only PLAY_PAUSE leaves silence.
+                if (result.userActivityUpdate) {
+                    const ip = device.ip;
+                    if (AIRPLAY_PAUSE_INTENT[ip] && FINAL_STATE[ip]) {
+                        const currentSource = FINAL_STATE[ip].source;
+                        if (currentSource === 'INVALID_SOURCE') {
+                            // Pseudo-pause established. 800ms coalescing timer → resume on silence.
+                            // Volume/preset/power all cancel the timer via their WebSocket events.
+                            if (USER_ACTIVITY_TIMER[ip]) clearTimeout(USER_ACTIVITY_TIMER[ip]);
+                            USER_ACTIVITY_TIMER[ip] = setTimeout(() => {
+                                delete USER_ACTIVITY_TIMER[ip];
+                                const state = FINAL_STATE[ip];
+                                if (AIRPLAY_PAUSE_INTENT[ip] && state && state.source === 'INVALID_SOURCE' && !AIRPLAY_RESUME_DEBOUNCE[ip] && !mass.isRecovering(ip)) {
+                                    AIRPLAY_RESUME_DEBOUNCE[ip] = true;
+                                    setTimeout(() => { delete AIRPLAY_RESUME_DEBOUNCE[ip]; }, 3000);
+                                    console.log(`[DeviceState] ▶️ Remote resume detected on ${ip}. Triggering MASS play...`);
+                                    delete AIRPLAY_PAUSE_INTENT[ip];
+                                    setExpectation(ip, 'PLAY_STATUS', 'PLAYING');
+                                    mass.play(ip).catch(() => {});
+                                }
+                            }, 800);
+                        } else if (currentSource === 'AIRPLAY') {
+                            // AirPlay session still tearing down (INVALID_SOURCE not yet arrived).
+                            // Use same 800ms coalescing to distinguish PLAY_PAUSE from volume/preset.
+                            // Volume → also fires volumeUpdated (cancels timer). Presets → nowSelectionUpdated.
+                            // If silence after 800ms: PLAY_PAUSE confirmed. Set PENDING_RESUME so
+                            // processSettledState auto-resumes when INVALID_SOURCE is confirmed.
+                            if (USER_ACTIVITY_TIMER[ip]) clearTimeout(USER_ACTIVITY_TIMER[ip]);
+                            USER_ACTIVITY_TIMER[ip] = setTimeout(() => {
+                                delete USER_ACTIVITY_TIMER[ip];
+                                if (AIRPLAY_PAUSE_INTENT[ip] && FINAL_STATE[ip] && FINAL_STATE[ip].source === 'AIRPLAY') {
+                                    console.log(`[DeviceState] ⏳ Remote PLAY_PAUSE during AirPlay teardown (${ip}). Resume queued for INVALID_SOURCE.`);
+                                    AIRPLAY_PENDING_RESUME[ip] = true;
+                                }
+                            }, 800);
+                        }
+                    }
+                    return;
+                }
+
+                // DLNA skip: physical remote NEXT/PREV sends UPnP SkipNext/SkipPrev to MASS's
+                // DLNA renderer. Flow Mode can't service it (single continuous stream) → MASS
+                // returns an error → speaker fires errorUpdate and drops the DLNA connection.
+                // Intercept here and route the skip to MASS via its own HTTP API.
+                if (result.errorUpdate) {
+                    const ip = device.ip;
+                    const errorName = result.errorUpdate.error?.$?.name;
+                    if (errorName === 'QPLAY_SKIP_NEXT_FAILED') {
+                        console.log(`[DeviceState] ⏭️ Remote NEXT detected on ${ip} (DLNA skip intercepted). Routing to MASS...`);
+                        setExpectation(ip, 'PLAY_STATUS', 'PLAYING');
+                        mass.next(ip).catch(() => {});
+                    } else if (errorName === 'QPLAY_SKIP_PREV_FAILED') {
+                        console.log(`[DeviceState] ⏮️ Remote PREVIOUS detected on ${ip} (DLNA skip intercepted). Routing to MASS...`);
+                        setExpectation(ip, 'PLAY_STATUS', 'PLAYING');
+                        mass.previous(ip).catch(() => {});
+                    }
+                    return;
+                }
+
                 if (!result.updates) return;
 
-                // UPDATE NATIVE CACHE INSTANTLY
                 if (result.updates.nowPlayingUpdated) {
                     const np = result.updates.nowPlayingUpdated.nowPlaying;
-                    NATIVE_CACHE[device.ip].nowPlaying = np; 
+                    NATIVE_CACHE[device.ip].nowPlaying = np;
                     if (np.playStatus !== undefined) NATIVE_CACHE[device.ip].playStatus = np.playStatus;
+                    if (USER_ACTIVITY_TIMER[device.ip]) { clearTimeout(USER_ACTIVITY_TIMER[device.ip]); delete USER_ACTIVITY_TIMER[device.ip]; }
                 }
                 if (result.updates.volumeUpdated) {
                     NATIVE_CACHE[device.ip].volume = parseInt(result.updates.volumeUpdated.volume.actualvolume);
+                    if (USER_ACTIVITY_TIMER[device.ip]) { clearTimeout(USER_ACTIVITY_TIMER[device.ip]); delete USER_ACTIVITY_TIMER[device.ip]; }
+                    delete AIRPLAY_PENDING_RESUME[device.ip];
                 }
-
-                // A hardware change occurred! Re-lock the UI if an expectation isn't already active.
+                
+                if (result.updates.nowSelectionUpdated) {
+                    if (USER_ACTIVITY_TIMER[device.ip]) { clearTimeout(USER_ACTIVITY_TIMER[device.ip]); delete USER_ACTIVITY_TIMER[device.ip]; }
+                    delete AIRPLAY_PENDING_RESUME[device.ip];
+                    const selection = result.updates.nowSelectionUpdated;
+                    let presetId = 0;
+                    if (selection.preset) {
+                        presetId = parseInt(selection.preset.id || (selection.preset.$ && selection.preset.$.id) || 0);
+                    }
+                    if (presetId > 0) {
+                        console.log(`[DeviceState] PRESET_${presetId} press on ${device.ip}`);
+                        const ci = selection.preset?.ContentItem;
+                        if (ci) {
+                            const source   = ci.$?.source   || ci.source   || '';
+                            const location = ci.$?.location || ci.location || '';
+                            if (!utils.isHybridContentItem(source, location)) {
+                                console.log(`\n[DeviceState] Preset ${presetId} on ${device.ip} — non-hybrid URL detected, routing to MASS directly`);
+                                utils.executeSmartPreset(device.ip, presetId);
+                            }
+                        }
+                    }
+                }
+                
                 if (!EXPECTATIONS[device.ip]) FINAL_STATE[device.ip].readyForDisplay = false; 
 
                 if (DEBOUNCE_TIMERS[device.ip]) clearTimeout(DEBOUNCE_TIMERS[device.ip]);
-
                 DEBOUNCE_TIMERS[device.ip] = setTimeout(async () => {
-                    // HARDWARE SETTLED. RUN THE BUSINESS LOGIC ONCE.
                     await processSettledState(device.ip);
                 }, DEBOUNCE_DELAY_MS);
 
-            } catch (err) {
-                console.log(`[DeviceState] ⚠️ XML Parsing Error on ${device.ip}: ${err.message}`);
-            }
+            } catch (err) {}
         });
-	
-		ws.on('error', (err) => {
-            // --- THE SILENCER ---
-            // Catch protocol-level crashes from bad metadata bytes without hard failure loops
+    
+        ws.on('error', (err) => {
             if (err.message.includes('UTF-8')) {
                 if (!POISONED_DEVICES[device.ip]) {
-                    console.log(`[DeviceState] 🧽 Bad metadata from ${device.ip} broke the socket.`);
-                    console.log(`[DeviceState] 🔇 Muting socket loop logs until Gapless Watchdog catches a clean track change...`);
+                    console.log(`[DeviceState] ⚠️ Bad metadata from ${device.ip} broke the socket.`);
                     POISONED_DEVICES[device.ip] = true;
                 }
-                reconnectDelay = 5000; // Background pings stay active quietly
-                return; // Suppress error propagation
+                reconnectDelay = 5000; 
+                return; 
             }
-            
             failedAttempts++;
-            
-            if (failedAttempts < 3 && !POISONED_DEVICES[device.ip]) {
-                console.log(`[DeviceState] ⚠️ WS Error on ${device.ip}: ${err.message}`);
-            } else if (failedAttempts === 3) {
-                if (!POISONED_DEVICES[device.ip]) {
-                    console.log(`[DeviceState] 🔇 Speaker ${device.ip} is unreachable. Suppressing WS logs until it wakes up.`);
-                }
-                // flag it as offline so UI grays it out
-                if (FINAL_STATE[device.ip]) FINAL_STATE[device.ip].online = false;
-            }
         });
-	
-		// --- AUTO-RECONNECT LOOP ---
+    
         ws.on('close', () => {
-            // Use unified dictionary to muzzle log spam when a device is marked poisoned
-            if (failedAttempts < 3 && !POISONED_DEVICES[device.ip]) {
-                console.log(`[DeviceState] 🔌 WS Disconnected from ${device.ip}. Reconnecting in ${reconnectDelay / 1000}s...`);
-            }
-            
             setTimeout(fetchInitialAndConnect, reconnectDelay);
-            
-            // Exponential backoff: Cap at 60s delay unless the poison shield has actively forced a 30s pause
-            if (reconnectDelay < 60000 && !POISONED_DEVICES[device.ip]) {
-                reconnectDelay = Math.min(reconnectDelay * 2, 60000);
+            if (reconnectDelay < 15000 && !POISONED_DEVICES[device.ip]) {
+                reconnectDelay = Math.min(reconnectDelay * 2, 15000);
             }
         });
-		
     }
 
     // Start the engine
     fetchInitialAndConnect();
-
 }
+
 
 // --- THE LOGIC ENGINE ---
 async function processSettledState(ip) {
@@ -485,14 +716,33 @@ async function processSettledState(ip) {
         let finalPlayStatus = (rawStatus === 'BUFFERING_STATE') ? 'PLAY_STATE' : rawStatus;
         let finalProvider = "";
 
-        // --- RESTORED: Standby Preset Wipe ---
+		// --- RESTORED: Standby Preset Wipe ---
         if (isStandby) {
-            mass.setPresetMemory(ip, 0);
-            delete LAST_METADATA[ip];
-            if (LAST_VALID_STATE[ip] && LAST_VALID_STATE[ip].isStandby === false) {
-			// The 1-2 Punch: Stop the active stream, then clear MA queue completely 
-                mass.stop(ip).catch(() => {});
-                mass.clearQueue(ip).catch(() => {});
+            // 🛑 THE RACE CONDITION FIX (Preset Wake-Up)
+            // If the user wakes the speaker by pressing a preset, the HTTP API registers the
+            // preset lock INSTANTLY, but the hardware still reports "STANDBY" for another 2 seconds.
+            // We must NOT wipe the preset memory if a PRESET expectation is actively locked!
+            const isWakingViaPreset = EXPECTATIONS[ip] && EXPECTATIONS[ip].type === 'PRESET';
+
+            if (isWakingViaPreset) {
+                console.log(`[DeviceState] ${ip} Standby detected but PRESET expectation active — cmdStop suppressed (wake race guard).`);
+            } else {
+                mass.setPresetMemory(ip, 0);
+                delete LAST_METADATA[ip];
+                if (!LAST_VALID_STATE[ip]) {
+                    if (global.DEBUG_MODE) console.log(`[DeviceState] ${ip} Standby detected but no prior state recorded — cmdStop skipped.`);
+                } else if (LAST_VALID_STATE[ip].isStandby !== false) {
+                    if (global.DEBUG_MODE) console.log(`[DeviceState] ${ip} Standby detected — prior state was already Standby — cmdStop skipped (no transition).`);
+                } else {
+                    // The 1-2 Punch: Stop the active stream, then clear MA queue completely
+                    console.log(`[DeviceState] 💤 ${ip} entered Standby — stopping MASS.`);
+                    mass.cmdStop(ip).catch((e) => console.error(`[DeviceState] ❌ cmdStop failed for ${ip}: ${e.message}`));
+                    mass.stop(ip).catch((e) => console.error(`[DeviceState] ❌ stop failed for ${ip}: ${e.message}`));
+                    mass.clearQueue(ip).catch((e) => console.error(`[DeviceState] ❌ clearQueue failed for ${ip}: ${e.message}`));
+                    // Sync final volume to MASS so it doesn't override with a stale value
+                    // on the next power-on when MA "Volume Control" is enabled.
+                    mass.syncVolumeToMass(ip, NATIVE_CACHE[ip].volume).catch(() => {});
+                }
             }
 
             finalPlayStatus = 'STOP_STATE'; // Forces play button to gray
@@ -502,11 +752,16 @@ async function processSettledState(ip) {
         let massIsActiveDriver = false;
         const isMassSourceType = (source === 'UPNP' || source === 'AIRPLAY');
         // THE STICKY DRIVER
-        // If Bose pauses a DLNA stream, it drops the socket and reports INVALID_SOURCE.
-        // so remember MASS is still driving so the Resume button routes correctly
+        // MASS 2.7.x: pausing a DLNA stream terminated the HTTP connection, causing Bose to
+        // report INVALID_SOURCE. The wasMassDriving+isOrphaned branch was the primary path.
+        //
+        // MASS 2.8.x (PR #3704): MASS now sends a proper UPnP AVTransport Pause command.
+        // Bose keeps the DLNA connection alive and reports PAUSE_STATE with source=UPNP.
+        // For clean DLNA pauses, isMassSourceType handles it — wasMassDriving+isOrphaned
+        // no longer fires. It remains as a safety net for unexpected stream drops, network
+        // blips, and AirPlay hard-stop scenarios where INVALID_SOURCE still appears.
         const wasMassDriving = LAST_VALID_STATE[ip] && LAST_VALID_STATE[ip].massIsActiveDriver;
         const isOrphaned = (!source || source === 'INVALID_SOURCE' || source === 'Ready');
-        // Use the variables to decide if we should check MASS!
         const shouldCheckMass = isMassSourceType || (wasMassDriving && isOrphaned);
 
         if (shouldCheckMass && !isStandby) {
@@ -532,7 +787,31 @@ async function processSettledState(ip) {
                         rawStatus: rawStatus,
                         type: finalMediaType
                     };
-                    const overrides = resolveMetadataAndStatus(nativeState, maData, source, false, ip);
+                    // AirPlay pause terminates the session → Bose reports INVALID_SOURCE.
+                    // MASS reports 'idle'/'stopped' when the AirPlay connection drops, NOT 'paused'.
+                    // We detect user intent via AIRPLAY_PAUSE_INTENT; auto-clear it when MASS resumes.
+                    // Guard: only clear when native hardware is genuinely playing (PLAY/BUFFERING).
+                    // PAUSE_STATE or STOP_STATE here means we're mid-teardown — MASS may transiently
+                    // report 'playing' before processing the pause command, causing a false clear.
+                    if (AIRPLAY_PAUSE_INTENT[ip] && maData.state === 'playing' && finalPlayStatus === 'PLAY_STATE') delete AIRPLAY_PAUSE_INTENT[ip];
+                    const isPausedByShadow = isOrphaned && (
+                        maData.state === 'paused' ||
+                        (AIRPLAY_PAUSE_INTENT[ip] && (maData.state === 'idle' || maData.state === 'stopped'))
+                    );
+                    // Deferred remote resume: user pressed PLAY_PAUSE during the 12-14s AirPlay teardown
+                    // window (before INVALID_SOURCE was established). AIRPLAY_PENDING_RESUME was set
+                    // via the userActivityUpdate coalescing timer. Now that INVALID_SOURCE is confirmed
+                    // and isPausedByShadow is true, fire mass.play() automatically.
+                    if (isPausedByShadow && AIRPLAY_PENDING_RESUME[ip] && !AIRPLAY_RESUME_DEBOUNCE[ip] && !mass.isRecovering(ip)) {
+                        console.log(`[DeviceState] ▶️ Deferred remote resume (${ip}) — pending from teardown window. Triggering MASS play...`);
+                        delete AIRPLAY_PENDING_RESUME[ip];
+                        delete AIRPLAY_PAUSE_INTENT[ip];
+                        AIRPLAY_RESUME_DEBOUNCE[ip] = true;
+                        setTimeout(() => { delete AIRPLAY_RESUME_DEBOUNCE[ip]; }, 3000);
+                        setExpectation(ip, 'PLAY_STATUS', 'PLAYING');
+                        mass.play(ip).catch(() => {});
+                    }
+                    const overrides = resolveMetadataAndStatus(nativeState, maData, source, isPausedByShadow, ip);
 
                     finalTrack = overrides.track;
                     finalArtist = overrides.artist;
@@ -560,15 +839,6 @@ async function processSettledState(ip) {
                         }
                     }
                 }
-
-                const overrides = resolveMetadataAndStatus(nativeState, maData, source, false, ip);
-
-                finalTrack = overrides.track;
-                finalArtist = overrides.artist;
-                finalAlbum = overrides.album;
-                finalArt = overrides.art;
-                finalPlayStatus = overrides.playStatus;
-                finalMediaType = overrides.mediaType;
             } catch (e) {
                 // Silently ignore MA fetch errors
             }
@@ -616,7 +886,35 @@ async function processSettledState(ip) {
     }
 	
 	// --- DELEGATE BEHAVIOR 4 LOGIC ---
-    handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus);	
+    handleWakeMemory(ip, isStandby, activePreset, finalPlayStatus, source);
+
+    // --- REMOTE AIRPLAY PAUSE SYNC ---
+    // Physical remote pause: hardware reports PAUSE_STATE with source=AIRPLAY (session still alive).
+    // MASS doesn't know — it keeps streaming → music keeps playing.
+    // Intercept here and call mass.pause() to terminate the session.
+    // isPausedByShadow then handles the resulting INVALID_SOURCE as a pseudo-paused state.
+    if (finalPlayStatus === 'PAUSE_STATE' && source === 'AIRPLAY' && massIsActiveDriver && !AIRPLAY_PAUSE_INTENT[ip] && !mass.isRecovering(ip)) {
+        console.log(`[DeviceState] 🎮 Remote pause detected on AirPlay (${ip}). Syncing MASS...`);
+        AIRPLAY_PAUSE_INTENT[ip] = true;
+        mass.pause(ip).catch(() => {});
+    }
+
+    // --- REMOTE DLNA PAUSE/RESUME SYNC ---
+    // Physical remote pause on DLNA: hardware reports PAUSE_STATE with source=UPNP but our Control
+    // layer never called mass.pause(). No EXPECTATIONS lock means the UI didn't initiate this.
+    // Sync MASS now so the stream is properly paused; DLNA_PAUSE_INTENT flags that resume must
+    // also route through MASS (same path as the UI) rather than relying on UPnP events alone.
+    if (source !== 'UPNP' && DLNA_PAUSE_INTENT[ip]) delete DLNA_PAUSE_INTENT[ip]; // stale flag guard
+    if (finalPlayStatus === 'PAUSE_STATE' && source === 'UPNP' && massIsActiveDriver && !EXPECTATIONS[ip] && !DLNA_PAUSE_INTENT[ip] && !mass.isRecovering(ip)) {
+        console.log(`[DeviceState] 🎮 Remote pause detected on DLNA (${ip}). Syncing MASS...`);
+        DLNA_PAUSE_INTENT[ip] = true;
+        mass.pause(ip).catch(() => {});
+    }
+    if (finalPlayStatus === 'PLAY_STATE' && source === 'UPNP' && massIsActiveDriver && DLNA_PAUSE_INTENT[ip] && !mass.isRecovering(ip)) {
+        console.log(`[DeviceState] ▶️ Remote resume detected on DLNA (${ip}). Routing to MASS...`);
+        delete DLNA_PAUSE_INTENT[ip];
+        mass.play(ip).catch(() => {});
+    }
 
     let artPlaceholder = 'art-blank';
     if (isStandby) {
@@ -651,7 +949,7 @@ async function processSettledState(ip) {
                 if (newMembers.length > 0) {
                     console.log(`\n[DeviceState] 👥 GROUP STATE: ${ip} group updated. Now hosting ${newMembers.length} Slave(s).`);
                 } else if (oldMembers.length > 0 && newMembers.length === 0) {
-                    console.log(`\n[DeviceState] 💔 GROUP STATE: ${ip} group disbanded. All Slaves removed.`);
+                    console.log(`\n[DeviceState] ⛓️‍💥 GROUP STATE: ${ip} group disbanded. All Slaves removed.`);
                 }
             }
         }
@@ -685,7 +983,8 @@ async function processSettledState(ip) {
         artPlaceholder,
         provider: finalProvider,
         duration: finalDuration,
-        position: finalPosition
+        position: finalPosition,
+        airplayResumePending: !!AIRPLAY_PENDING_RESUME[ip]
     };
 
     // =========================================================
@@ -720,10 +1019,20 @@ async function processSettledState(ip) {
             if (finalPlayStatus === 'PLAY_STATE') {
                 if (!lastState || lastState.track !== finalTrack || lastState.playStatus !== finalPlayStatus) {
                     console.log(`[DeviceState] 🎵 ${ip} playing "${finalTrack || 'Unknown'}" via ${finalProvider || source || 'Unknown'}`);
+                    if (source === 'INVALID_SOURCE') {
+                        if (!global.PRE_BMX_SIGNAL) global.PRE_BMX_SIGNAL = {};
+                        global.PRE_BMX_SIGNAL[ip] = Date.now();
+                        if (global.WATCHDOG_SPEAKERS?.includes(ip))
+                            utils.appendWatchdogLog(ip, { ts: new Date().toISOString(), type: 'ws_event', source: 'INVALID_SOURCE' });
+                    }
                 }
             } else if (isStandby) {
                 if (!lastState || !lastState.isStandby) {
                     console.log(`[DeviceState] 💤 ${ip} entered Standby.`);
+                }
+            } else if (finalPlayStatus === 'PAUSE_STATE') {
+                if (!lastState || lastState.playStatus !== 'PAUSE_STATE') {
+                    console.log(`[DeviceState] ⏸️ ${ip} paused.`);
                 }
             }
         }
@@ -736,7 +1045,7 @@ async function processSettledState(ip) {
 }
 catch (error) {
     console.error(`[DeviceState] ❌ Error processing settled state for ${ip}:`, error.message);
-}
+	}
 }
 // --- SYNCHRONOUS GETTER ---
 async function get(device) {
@@ -769,15 +1078,45 @@ async function get(device) {
     } else {
         delete STOP_TIMERS[device.ip]; // Reset if it starts playing again
     }
-
-    return currentState || { ...device, online: true, readyForDisplay: false };
+    
+    // FIX 3: Stop lying on boot! Default to false.
+    return currentState || { ...device, online: false, readyForDisplay: true };
 }
+
 
 function clearSession(ip) {
     console.log(`[DeviceState] 🧹 Session Cleared for ${ip} (Power Down / Reset)`);
+    delete AIRPLAY_PAUSE_INTENT[ip];
+    delete AIRPLAY_RESUME_DEBOUNCE[ip];
+    delete AIRPLAY_PENDING_RESUME[ip];
+    delete DLNA_PAUSE_INTENT[ip];
+    if (USER_ACTIVITY_TIMER[ip]) { clearTimeout(USER_ACTIVITY_TIMER[ip]); delete USER_ACTIVITY_TIMER[ip]; }
     // Explicitly lock the UI during power down so the power button doesn't bounce!
     EXPECTATIONS[ip] = { type: 'POWER', expires: Date.now() + 5000 };
     if (FINAL_STATE[ip]) FINAL_STATE[ip].readyForDisplay = false;
+}
+
+function setAirplayPauseIntent(ip) {
+    AIRPLAY_PAUSE_INTENT[ip] = true;
+}
+
+function clearAirplayPauseIntent(ip) {
+    delete AIRPLAY_PAUSE_INTENT[ip];
+}
+
+// True while a previous AirPlay pause is still tearing down (session not yet
+// confirmed as INVALID_SOURCE). Lets callers know a resume can't be sent
+// directly yet and must be queued via armAirplayPendingResume() instead.
+function isAirplayTearingDown(ip) {
+    return !!AIRPLAY_PAUSE_INTENT[ip];
+}
+
+// Queues a resume for the moment the in-flight AirPlay teardown completes.
+// Mirrors the physical-remote path (line ~546) so a second PLAY_PAUSE press
+// during teardown — from the UI this time — gets the same deferred handling
+// instead of re-evaluating stale playStatus and re-sending PAUSE.
+function armAirplayPendingResume(ip) {
+    AIRPLAY_PENDING_RESUME[ip] = true;
 }
 
 function setExpectation(target, type, value, extraContext = null) {
@@ -797,9 +1136,10 @@ function setExpectation(target, type, value, extraContext = null) {
 
     if (!FINAL_STATE[ip]) return;
     
-    // 2. Set the Lock
-    EXPECTATIONS[ip] = { type, value, context: extraContext, expires: Date.now() + 8000 };
-    console.log(`[DeviceState] 🔒 UI Locked for ${ip}: Waiting for ${type}...`);
+    // 2. Set the Lock — PLAY_STATUS gets extra time since AirPlay state changes are slow
+    const timeoutMs = (type === 'PLAY_STATUS') ? 12000 : 8000;
+    EXPECTATIONS[ip] = { type, value, context: extraContext, expires: Date.now() + timeoutMs };
+    console.log(`[DeviceState] UI Locked for ${ip}: Waiting for ${type}...`);
     FINAL_STATE[ip].readyForDisplay = false; 
 }
 
@@ -807,7 +1147,14 @@ module.exports = {
     initDevice,
     get,
     setExpectation,
-    clearSession
+    clearSession,
+    setAirplayPauseIntent,
+    clearAirplayPauseIntent,
+    isAirplayTearingDown,
+    armAirplayPendingResume,
+    setLateJoinCallback,
+    clearAllResumeState,
+    pruneExtendedPresetsFromMemory
 };
  
 // =================================================================
@@ -818,11 +1165,31 @@ module.exports = {
 // =================================================================
 setInterval(async () => {
     for (const [ip, state] of Object.entries(FINAL_STATE)) {
-        
+
         // --- VIRTUAL WEBSOCKET FOR POISONED DEVICES ---
         // If the socket crashed, the speaker stops pushing XML events.
         // force a poll to catch Pause/Play clicks and clear UI locks!
         if (POISONED_DEVICES[ip]) {
+            await processSettledState(ip);
+        }
+
+        // --- PLAY_STATUS LOCK RESOLVER ---
+        // Bose WebSocket does not emit nowPlayingUpdated when paused via UPnP AVTransport.
+        // When a PLAY_PAUSE lock is pending on a MASS-driven speaker, poll the Bose HTTP API
+        // directly to force-refresh the native cache, then evaluate the expectation lock.
+        if (EXPECTATIONS[ip] && EXPECTATIONS[ip].type === 'PLAY_STATUS' && state && state.massIsActiveDriver) {
+            try {
+                const parser = new xml2js.Parser({ explicitArray: false });
+                const npRes = await axios.get(`http://${ip}:8090/now_playing`, { timeout: 2000 }).catch(() => null);
+                if (npRes && npRes.data) {
+                    let cleanXml = npRes.data.replace(/�/g, 'a').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+                    const npData = await parser.parseStringPromise(cleanXml);
+                    if (npData.nowPlaying && npData.nowPlaying.playStatus !== undefined) {
+                        NATIVE_CACHE[ip].nowPlaying = npData.nowPlaying;
+                        NATIVE_CACHE[ip].playStatus = npData.nowPlaying.playStatus;
+                    }
+                }
+            } catch (e) {}
             await processSettledState(ip);
         }
 
@@ -836,12 +1203,12 @@ setInterval(async () => {
                     
                     // If MASS reports a new track that isn't the dummy name, trigger an update!
                     if (newTrack && newTrack !== state.track && newTrack !== "Music Assistant") {
-                        console.log(`\n[DeviceState] 🐕 Gapless Watchdog caught track change on ${ip}: ${state.track} -> ${newTrack}`);
+                        console.log(`\n[DeviceState] 🔃 Gapless Watchdog caught track change on ${ip}: ${state.track} -> ${newTrack}`);
                         
                         // --- THE RESET & UNMUTE ---
                         // Track advanced! Clear poison suppression state to unlock socket logs
                         if (POISONED_DEVICES[ip]) {
-                            console.log(`[DeviceState] 🔓 Clean track signature detected. Re-activating WebSocket log stream for ${ip}.`);
+                            console.log(`[DeviceState] Clean track signature detected. Re-activating WebSocket log stream for ${ip}.`);
                             delete POISONED_DEVICES[ip];
                         }
 
@@ -854,4 +1221,4 @@ setInterval(async () => {
             }
         }
     }
-}, 2500); 
+}, 2500);
