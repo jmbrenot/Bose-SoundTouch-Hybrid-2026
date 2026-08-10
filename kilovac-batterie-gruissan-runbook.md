@@ -272,17 +272,18 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - Correction : l'onduleur Gruissan est un **DEYE**, pas un SOFAR HYD6000EP (erreur héritée du contexte de reprise du 12 juillet). Document renommé `kilovac-batterie-gruissan-runbook.md` et toutes les mentions corrigées.
 - Fichiers scripts et dashboard fusionnés directement dans les fichiers réels de Gruissan (fournis par l'utilisateur) : `gruissan-scripts-merged.yaml` (contenu actuel de `scripts.yaml` + bloc Kilovac ajouté) et `gruissan-dashboard-scada-merged.yaml` (les 3 vues du dashboard SCADA telles que fournies, carte Kilovac déjà insérée en colonne `center`). Les deux validés par un parseur YAML.
 - `configuration.yaml` réel fourni à son tour : fusion faite dans `gruissan-configuration-merged.yaml`, entrée `kilovac_batterie_gruissan_autorisation` ajoutée dans la clé `input_boolean:` déjà existante (helpers caméras) plutôt que d'en créer une seconde. Diff vérifié : 3 lignes ajoutées, rien d'autre touché. Les 3 fichiers Kilovac (scripts, dashboard, configuration) sont maintenant tous des remplacements complets prêts à l'emploi.
+- Confirmation utilisateur : bobine EV200 déjà raccordée et testée manuellement, OK. Étapes 4/5/8 de la checklist marquées faites. Étape 3 (réglage « Switch on power up » → Always OFF sur le Shelly) reste à faire — un test manuel du contacteur ne valide pas ce réglage logiciel. À partir du dépôt des fichiers fusionnés, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel batterie ↔ onduleur DEYE.
 
 ## Checklist de reprise
 
 - [x] 1. Intégrer le Shelly Plus 1 dans HA (intégration native, découverte mDNS depuis `192.168.1.54`)
 - [x] 2. Identifier son entité `switch.*` — `switch.garage_shellyplus1_kilovac`
-- [ ] 3. Régler l'état au démarrage du relais sur **OFF** (paramètre Shelly « Switch on power up » → Always OFF, pas « Restore last state ») — critique pour ne pas refermer le contacteur après une coupure secteur
-- [ ] 4. Tester les I/O du Shelly au multimètre (borne I / borne O), sans la bobine
-- [ ] 5. Tester le 12 V commuté par le Shelly, toujours sans bobine
+- [ ] 3. Régler l'état au démarrage du relais sur **OFF** (paramètre Shelly « Switch on power up » → Always OFF, pas « Restore last state ») — critique pour ne pas refermer le contacteur après une coupure secteur. **Toujours à faire** : un test manuel du contacteur ne valide pas ce réglage logiciel.
+- [x] 4. Tester les I/O du Shelly au multimètre (borne I / borne O) — fait, testé manuellement, OK
+- [x] 5. Tester le 12 V commuté par le Shelly — fait, testé manuellement, OK
 - [x] ~~6. Ajouter le JK-BMS DRY2 en série et retester toute la chaîne~~ — abandonné, DRY2 non fiable, retiré du câblage cible
-- [x] 7. Scripts et dashboard Gruissan en place (famille `kilovac_batterie_gruissan_*`, calquée sur Auzeville, sans confirmation automatique) — helper `input_boolean.kilovac_batterie_gruissan_autorisation` restant à créer dans HA
-- [ ] 8. Ne raccorder la bobine EV200 qu'après validation complète des étapes précédentes (câblage simplifié : Shelly → bobine directement, sans JK-BMS)
+- [x] 7. Scripts, dashboard et helper Gruissan en place (famille `kilovac_batterie_gruissan_*`, calquée sur Auzeville, sans confirmation automatique) — les 3 fichiers fusionnés (`gruissan-configuration-merged.yaml`, `-scripts-merged.yaml`, `-dashboard-scada-merged.yaml`) prêts à déployer
+- [x] 8. Bobine EV200 raccordée et testée manuellement — OK (10 août 2026). **À partir de maintenant, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel.**
 
 ## Pièges déjà rencontrés
 
