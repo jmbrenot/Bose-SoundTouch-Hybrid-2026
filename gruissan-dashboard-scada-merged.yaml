@@ -1,0 +1,611 @@
+views:
+  - title: SCADA
+    path: scada
+    icon: mdi:view-dashboard
+    type: custom:grid-layout
+    layout:
+      width: 100%
+      grid-template-columns: minmax(420px, 32%) minmax(520px, 38%) minmax(360px, 30%)
+      grid-template-areas: '"left center right"'
+      mediaquery:
+        '(max-width: 1200px)':
+          grid-template-columns: 1fr
+          grid-template-areas: '"left" "center" "right"'
+    cards:
+      - type: vertical-stack
+        view_layout:
+          grid-area: left
+        cards:
+          - type: markdown
+            content: |-
+              # SCADA ENERGETIQUE
+
+              ## Supervision temps reel installation hybride
+          - type: entities
+            title: Indicateurs instantanes
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.onduleur_solaire_power
+                name: Production Hoymiles
+                icon: mdi:white-balance-sunny
+              - entity: sensor.growatt_spf5000es_pv_power_1
+                name: Production Growatt PV1
+                icon: mdi:solar-panel
+              - entity: sensor.growatt_spf5000es_output_active_power
+                name: Sortie Growatt
+                icon: mdi:flash
+              - entity: sensor.puissance_edf_signee
+                name: Reseau EDF
+                icon: mdi:transmission-tower
+              - type: attribute
+                entity: sensor.puissance_edf_signee
+                attribute: sens
+                name: Sens reseau
+                icon: mdi:swap-horizontal
+              - entity: sensor.conso_hors_onduleur_power
+                name: Conso hors onduleur
+                icon: mdi:home-lightning-bolt
+          - type: entities
+            title: Surveillances SCADA
+            state_color: true
+            entities:
+              - type: section
+                label: Disponibilite
+              - entity: sensor.scada_etat_hoymiles
+                name: Hoymiles
+                icon: mdi:solar-power
+              - entity: sensor.scada_etat_growatt
+                name: Growatt
+                icon: mdi:solar-power-variant
+              - entity: sensor.scada_etat_mesure_edf
+                name: Mesure EDF
+                icon: mdi:transmission-tower
+              - entity: sensor.scada_etat_mesure_hors_onduleur
+                name: Mesure hors onduleur
+                icon: mdi:home-lightning-bolt
+              - entity: sensor.scada_etat_jkbms
+                name: JKBMS
+                icon: mdi:mqtt
+              - type: section
+                label: Alertes energie
+              - entity: sensor.scada_alerte_surcharge_shelly
+                name: Surcharge Shelly
+                icon: mdi:power-plug-alert
+              - entity: sensor.scada_alerte_defaut_growatt
+                name: Defaut Growatt
+                icon: mdi:solar-power-variant-outline
+              - entity: sensor.scada_alerte_temperature_growatt
+                name: Temperature Growatt
+                icon: mdi:thermometer-alert
+              - entity: sensor.scada_alerte_reseau_electrique
+                name: Reseau electrique
+                icon: mdi:transmission-tower-alert
+              - entity: sensor.scada_alerte_erreur_jkbms
+                name: Erreur JKBMS
+                icon: mdi:alert-circle
+              - entity: sensor.scada_alerte_conso_hors_onduleur
+                name: Conso hors onduleur
+                icon: mdi:home-alert
+              - type: section
+                label: Maison
+              - entity: sensor.scada_alerte_livebox
+                name: Livebox WAN
+                icon: mdi:wan
+              - entity: sensor.scada_alerte_disjoncteur_gruissan
+                name: Disjoncteur Gruissan
+                icon: mdi:electric-switch
+              - entity: sensor.scada_alerte_climatisations
+                name: Climatisations
+                icon: mdi:air-conditioner
+      - type: vertical-stack
+        view_layout:
+          grid-area: center
+        cards:
+          - type: entities
+            title: Growatt SPF5000ES
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.growatt_spf5000es_run_mode
+                name: Etat
+                icon: mdi:solar-power-variant
+              - entity: select.growatt_spf5000es_state_power
+                name: Mode alimentation
+                icon: mdi:tune
+              - entity: sensor.growatt_spf5000es_pv_power_1
+                name: PV1
+                icon: mdi:solar-panel
+              - entity: sensor.growatt_spf5000es_pv_power_2
+                name: PV2
+                icon: mdi:solar-panel
+              - entity: sensor.growatt_spf5000es_output_active_power
+                name: Sortie active
+                icon: mdi:flash
+              - entity: sensor.growatt_spf5000es_ac_input_power
+                name: Entree AC
+                icon: mdi:transmission-tower-import
+              - entity: sensor.growatt_spf5000es_ac_discharge_power
+                name: Decharge AC
+                icon: mdi:transmission-tower-export
+              - entity: sensor.growatt_spf5000es_battery_discharge_power
+                name: Decharge batterie
+                icon: mdi:battery-arrow-down
+              - entity: sensor.growatt_spf5000es_battery_power_charge
+                name: Charge batterie
+                icon: mdi:battery-arrow-up
+          - type: entities
+            title: Batterie Gruissan JKBMS
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: >-
+                  binary_sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_online_status_2
+                name: Communication MQTT
+                icon: mdi:mqtt
+              - entity: >-
+                  sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_state_of_charge_2
+                name: SOC
+                icon: mdi:battery-high
+              - entity: sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_power_2
+                name: Puissance
+                icon: mdi:flash
+              - entity: >-
+                  sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_total_voltage_2
+                name: Tension
+                icon: mdi:sine-wave
+              - entity: sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_current_2
+                name: Courant
+                icon: mdi:current-dc
+              - entity: >-
+                  sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_delta_cell_voltage_2
+                name: Delta cellules
+                icon: mdi:compare-horizontal
+          - type: vertical-stack
+            title: Kilovac batterie Gruissan
+            cards:
+              - type: picture-elements
+                image: /local/kilovac-batterie-gruissan-synoptique.svg
+                aspect_ratio: 60%
+                elements:
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: 'on'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Shelly ON
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#18b85a'
+                          --mdc-icon-size: 44px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:toggle-switch
+                        title: Shelly ON
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#ffffff'
+                          --mdc-icon-size: 25px
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: 'off'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Shelly OFF
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#e53935'
+                          --mdc-icon-size: 44px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:toggle-switch-off
+                        title: Shelly OFF
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#ffffff'
+                          --mdc-icon-size: 25px
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: unavailable
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Shelly indisponible
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#e53935'
+                          --mdc-icon-size: 44px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:alert
+                        title: Shelly indisponible
+                        style:
+                          left: 50%
+                          top: 45%
+                          color: '#ffffff'
+                          --mdc-icon-size: 25px
+                  - type: conditional
+                    conditions:
+                      - entity: input_boolean.kilovac_batterie_gruissan_autorisation
+                        state: 'on'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Fermeture armée
+                        style:
+                          left: 80%
+                          top: 88%
+                          color: '#18b85a'
+                          --mdc-icon-size: 40px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:lock-open-check
+                        title: Fermeture armée
+                        style:
+                          left: 80%
+                          top: 88%
+                          color: '#ffffff'
+                          --mdc-icon-size: 22px
+                  - type: conditional
+                    conditions:
+                      - entity: input_boolean.kilovac_batterie_gruissan_autorisation
+                        state: 'off'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Fermeture désarmée
+                        style:
+                          left: 80%
+                          top: 88%
+                          color: '#e53935'
+                          --mdc-icon-size: 40px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:lock
+                        title: Fermeture désarmée
+                        style:
+                          left: 80%
+                          top: 88%
+                          color: '#ffffff'
+                          --mdc-icon-size: 22px
+              - type: markdown
+                content: >-
+                  **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |
+                  **Autorisation :** {{ states('input_boolean.kilovac_batterie_gruissan_autorisation') }}
+
+
+                  *Pas de confirmation physique automatisée — le JK-BMS n'est plus utilisé dans cette chaîne. Vérifier manuellement l'état réel du contacteur.*
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: button
+                    name: Armer la fermeture
+                    icon: mdi:lock-open-check
+                    tap_action:
+                      action: call-service
+                      service: script.turn_on
+                      target:
+                        entity_id: script.kilovac_batterie_gruissan_autoriser_fermeture
+                      confirmation:
+                        text: Autoriser manuellement une future fermeture du Kilovac ?
+                    card_mod:
+                      style: 'ha-state-icon { color: #20c968 !important; }'
+                  - type: button
+                    name: Fermer le Kilovac
+                    icon: mdi:electric-switch
+                    tap_action:
+                      action: call-service
+                      service: script.turn_on
+                      target:
+                        entity_id: script.kilovac_batterie_gruissan_fermer
+                      confirmation:
+                        text: >-
+                          Fermer le Kilovac ? Aucune confirmation automatique :
+                          vérifiez physiquement.
+                    card_mod:
+                      style: 'ha-state-icon { color: #20c968 !important; }'
+                  - type: button
+                    name: Ouvrir le Kilovac
+                    icon: mdi:electric-switch-closed
+                    tap_action:
+                      action: call-service
+                      service: script.turn_on
+                      target:
+                        entity_id: script.kilovac_batterie_gruissan_ouvrir
+                    card_mod:
+                      style: 'ha-state-icon { color: #ef5350 !important; }'
+                  - type: button
+                    name: Ouvrir et désarmer
+                    icon: mdi:lock
+                    tap_action:
+                      action: call-service
+                      service: script.turn_on
+                      target:
+                        entity_id: script.kilovac_batterie_gruissan_interdire_fermeture
+                    card_mod:
+                      style: 'ha-state-icon { color: #ef5350 !important; }'
+      - type: vertical-stack
+        view_layout:
+          grid-area: right
+        cards:
+          - type: grid
+            columns: 1
+            square: false
+            cards:
+              - type: gauge
+                entity: sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_power_2
+                name: Batterie Gruissan
+                min: -5000
+                max: 5000
+              - type: gauge
+                entity: sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_power
+                name: Batterie Auzeville
+                min: -5000
+                max: 5000
+              - type: gauge
+                entity: sensor.jkbms_esp32_sofar_jkbms_esp32_sofar_power
+                name: Batterie Sofar
+                min: -5000
+                max: 5000
+          - type: entities
+            title: Climatisations
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: switch.clim_gruissan_sejour_power
+                name: Sejour
+              - entity: switch.clim_gruissan_chambre_jules_power
+                name: Chambre Jules
+              - entity: switch.clim_gruissan_chambre_jm_power
+                name: Chambre JM
+          - type: entities
+            title: Sorties JKBMS Growatt Gruissan - declencheurs
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: >-
+                  select.garage_jkbms_esp32_gruissan_jkbms_esp32_gruissan_dry_contact_1_trigger_2
+                name: Contact sec 1 - declencheur
+                icon: mdi:lightning-bolt-outline
+              - entity: >-
+                  select.garage_jkbms_esp32_gruissan_jkbms_esp32_gruissan_dry_contact_2_trigger_2
+                name: Contact sec 2 - declencheur
+                icon: mdi:lightning-bolt-outline
+          - type: button
+            entity: update.solax_inverter_modbus_update
+            name: Mettre a jour SolaX + merge
+            icon: mdi:source-merge
+            show_state: true
+            state_content: state
+            tap_action:
+              action: perform-action
+              confirmation:
+                text: >-
+                  Lancer la mise a jour HACS de SolaX Modbus, puis reappliquer
+                  le merge local Growatt Gruissan / SOFAR ? Redemarrer Home
+                  Assistant apres succes.
+              perform_action: script.solax_modbus_update_hacs_then_merge
+            hold_action:
+              action: more-info
+              entity: update.solax_inverter_modbus_update
+  - title: Maison vide
+    path: maison-vide
+    icon: mdi:home-alert
+    type: custom:grid-layout
+    layout:
+      width: 100%
+      grid-template-columns: minmax(420px, 34%) minmax(520px, 33%) minmax(420px, 33%)
+      grid-template-areas: '"left center right"'
+      mediaquery:
+        '(max-width: 1200px)':
+          grid-template-columns: 1fr
+          grid-template-areas: '"left" "center" "right"'
+    cards:
+      - type: vertical-stack
+        view_layout:
+          grid-area: left
+        cards:
+          - type: entities
+            title: A surveiller en absence
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.scada_alerte_conso_hors_onduleur
+                name: Conso hors onduleur
+                icon: mdi:home-alert
+              - entity: sensor.scada_alerte_climatisations
+                name: Climatisations
+                icon: mdi:air-conditioner
+              - entity: sensor.scada_alerte_livebox
+                name: Livebox WAN
+                icon: mdi:wan
+              - entity: sensor.scada_alerte_disjoncteur_gruissan
+                name: Disjoncteur Gruissan
+                icon: mdi:electric-switch
+          - type: entities
+            title: Mesures critiques
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.scada_etat_mesure_edf
+                name: Mesure EDF
+                icon: mdi:transmission-tower
+              - entity: sensor.puissance_edf_signee
+                name: Reseau EDF
+                icon: mdi:transmission-tower
+              - type: attribute
+                entity: sensor.puissance_edf_signee
+                attribute: sens
+                name: Sens reseau
+                icon: mdi:swap-horizontal
+              - entity: sensor.scada_etat_mesure_hors_onduleur
+                name: Mesure hors onduleur
+                icon: mdi:home-lightning-bolt
+      - type: vertical-stack
+        view_layout:
+          grid-area: center
+        cards:
+          - type: entities
+            title: Energie critique
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.scada_etat_growatt
+                name: Growatt
+                icon: mdi:solar-power-variant
+              - entity: sensor.scada_alerte_defaut_growatt
+                name: Defaut Growatt
+                icon: mdi:solar-power-variant-outline
+              - entity: sensor.scada_alerte_temperature_growatt
+                name: Temperature Growatt
+                icon: mdi:thermometer-alert
+              - entity: sensor.scada_alerte_reseau_electrique
+                name: Reseau electrique
+                icon: mdi:transmission-tower-alert
+              - entity: sensor.scada_alerte_surcharge_shelly
+                name: Surcharge Shelly
+                icon: mdi:power-plug-alert
+          - type: entities
+            title: Batterie Gruissan
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.scada_etat_jkbms
+                name: Communication
+                icon: mdi:mqtt
+              - entity: >-
+                  sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_state_of_charge_2
+                name: SOC
+                icon: mdi:battery-high
+              - entity: sensor.jkbms_esp32_gruissan_jkbms_esp32_gruissan_power_2
+                name: Puissance
+                icon: mdi:flash
+              - entity: sensor.scada_alerte_erreur_jkbms
+                name: Erreur JKBMS
+                icon: mdi:alert-circle
+      - type: vertical-stack
+        view_layout:
+          grid-area: right
+        cards:
+          - type: entities
+            title: Climatisations
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: switch.clim_gruissan_sejour_power
+                name: Sejour
+              - entity: switch.clim_gruissan_chambre_jules_power
+                name: Chambre Jules
+              - entity: switch.clim_gruissan_chambre_jm_power
+                name: Chambre JM
+          - type: entities
+            title: Sauvegardes et mises a jour
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.backup_last_successful_automatic_backup
+                name: Derniere sauvegarde OK
+                icon: mdi:backup-restore
+              - entity: update.home_assistant_core_update
+                name: MAJ Core
+                icon: mdi:home-assistant
+              - entity: update.home_assistant_supervisor_update
+                name: MAJ Supervisor
+                icon: mdi:home-assistant
+              - entity: update.home_assistant_operating_system_update
+                name: MAJ OS
+                icon: mdi:home-assistant
+  - title: Systeme
+    path: systeme
+    icon: mdi:cog
+    type: custom:grid-layout
+    cards:
+      - type: vertical-stack
+        backup_dashboard_controls: true
+        cards:
+          - type: markdown
+            title: Sauvegarde complete Home Assistant Gruissan
+            content: >-
+              {% set s = states('sensor.sauvegarde_complete_ha_gruissan') %}
+
+              {% set p =
+              state_attr('sensor.sauvegarde_complete_ha_gruissan','progress') |
+              int(0) %}
+
+              {% set phase =
+              state_attr('sensor.sauvegarde_complete_ha_gruissan','phase') or
+              'repos' %}
+
+              {% set detail =
+              state_attr('sensor.sauvegarde_complete_ha_gruissan','detail') or
+              'Aucune information' %}
+
+              {% if s == 'en_cours' %}<span
+              style="color:#3498db;font-size:22px">&#9679;</span> **Sauvegarde
+              en cours** — {{ phase }} ({{ p }} %)
+
+              {% elif s == 'terminee' %}<span
+              style="color:#20c968;font-size:22px">&#9679;</span> **Sauvegarde
+              terminee et validee**
+
+              {% elif s in ['erreur','interrompue'] %}<span
+              style="color:#e53935;font-size:22px">&#9679;</span> **{{ s |
+              capitalize }}**
+
+              {% else %}<span
+              style="color:#78909c;font-size:22px">&#9679;</span> **Sauvegarde
+              au repos**
+
+              {% endif %}
+
+              {{ detail }}
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: button
+                name: Lancer
+                icon: mdi:database-arrow-up
+                tap_action:
+                  action: perform-action
+                  confirmation:
+                    text: Lancer une sauvegarde complete Home Assistant Gruissan ?
+                  perform_action: script.sauvegarde_complete_demarrer_dashboard
+                card_mod:
+                  style: 'ha-state-icon { color: #20c968 !important; }'
+              - type: button
+                name: Interrompre
+                icon: mdi:stop-circle-outline
+                tap_action:
+                  action: perform-action
+                  confirmation:
+                    text: Interrompre la sauvegarde en cours ?
+                  perform_action: script.sauvegarde_complete_interrompre_dashboard
+                card_mod:
+                  style: 'ha-state-icon { color: #e53935 !important; }'
+              - type: button
+                entity: sensor.sauvegarde_complete_ha_gruissan
+                name: Avancement
+                icon: mdi:progress-clock
+                show_state: true
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: 'ha-state-icon { color: #3498db !important; }'
+        view_layout:
+          grid-area: main
+    layout:
+      width: 100%
+      grid-template-columns: minmax(420px, 900px)
+      grid-template-areas: '"main"'

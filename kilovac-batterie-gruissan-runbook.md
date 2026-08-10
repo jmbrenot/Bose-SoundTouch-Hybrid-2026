@@ -51,7 +51,7 @@ Calqué sur le bloc `kilovac_batterie_auzeville_*` du dashboard SCADA Auzeville,
 
 ### Helper à créer
 
-Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-input-boolean.yaml`](./kilovac-batterie-gruissan-input-boolean.yaml) (à coller dans `configuration.yaml`), ou création manuelle :
+Fichier fragment : [`kilovac-batterie-gruissan-input-boolean.yaml`](./kilovac-batterie-gruissan-input-boolean.yaml) — bloc `input_boolean:` à fusionner dans `configuration.yaml`. Pas de version « fichier complet » ici : le `configuration.yaml` réel de Gruissan n'a pas été partagé, et une clé `input_boolean:` dupliquée casserait le YAML si elle existe déjà ailleurs. Plus simple et sans risque : créer le helper depuis l'UI —
 
 Réglages → Appareils et services → **Aides** → + → *Interrupteur (toggle)* :
 - Nom : `Kilovac batterie Gruissan - autorisation`
@@ -59,7 +59,7 @@ Réglages → Appareils et services → **Aides** → + → *Interrupteur (toggl
 
 ### Scripts
 
-Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-scripts.yaml`](./kilovac-batterie-gruissan-scripts.yaml) — à coller à la fin de `scripts.yaml` (ou Réglages → Automatisations et scènes → Scripts → mode YAML).
+Fichier complet, prêt à remplacer directement `scripts.yaml` : [`gruissan-scripts-merged.yaml`](./gruissan-scripts-merged.yaml) — reprend tel quel votre `scripts.yaml` actuel (`solax_modbus_update_hacs_then_merge`, `sauvegarde_complete_*`) avec le bloc `kilovac_batterie_gruissan_*` ajouté à la fin. Après remplacement : Outils de développement → YAML → Recharger les scripts (ou redémarrage HA).
 
 ```yaml
 # CODEX KILOVAC BATTERIE GRUISSAN - DEBUT
@@ -134,9 +134,9 @@ kilovac_batterie_gruissan_etat:
 
 Synoptique : `kilovac-batterie-gruissan-synoptique.svg` (dans ce dépôt) — copié dans `/config/www/` sur l'hôte HA Gruissan le 10 août 2026, référencé via `/local/kilovac-batterie-gruissan-synoptique.svg`.
 
-Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-dashboard-card.yaml`](./kilovac-batterie-gruissan-dashboard-card.yaml).
+Fichier complet, prêt à remplacer directement le YAML du dashboard : [`gruissan-dashboard-scada-merged.yaml`](./gruissan-dashboard-scada-merged.yaml) — reprend les 3 vues (`scada`, `maison-vide`, `systeme`) telles que fournies, avec la carte Kilovac déjà insérée dans la colonne `center` de la vue `scada`, juste après « Batterie Gruissan JKBMS ».
 
-**Emplacement dans le dashboard réel `SCADA ENERGETIQUE` :** insérer le bloc `vertical-stack` ci-dessous dans la colonne `center` de la vue `scada`, juste après la carte `entities` « Batterie Gruissan JKBMS » et avant le `vertical-stack` de la colonne `right`.
+Extrait de la carte seule (pour référence / relecture) — déjà intégrée dans le fichier ci-dessus, pas besoin de la recoller séparément :
 
 ```yaml
 - type: vertical-stack
@@ -273,7 +273,8 @@ Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-dashboard-card.yaml`](./
 - Étape 2 faite : entité identifiée — `switch.garage_shellyplus1_kilovac`.
 - Décision : abandon définitif du JK-BMS DRY2 dans la boucle de commande (contact sec non fiable) — seul le Shelly pilote la bobine. Câblage cible simplifié en conséquence.
 - Pilotage Home Assistant écrit par analogie avec Auzeville : nouvelle famille d'entités `kilovac_batterie_gruissan_*` (scripts autoriser/interdire/ouvrir/fermer/état), sans confirmation automatique (pas de capteur de tension côté onduleur à Gruissan). Dashboard + synoptique SVG ajoutés au dépôt.
-- Correction : l'onduleur Gruissan est un **DEYE**, pas un SOFAR HYD6000EP (erreur héritée du contexte de reprise du 12 juillet). Document renommé `kilovac-batterie-gruissan-runbook.md` et toutes les mentions corrigées. Fichiers YAML autonomes ajoutés (`kilovac-batterie-gruissan-input-boolean.yaml`, `-scripts.yaml`, `-dashboard-card.yaml`) pour copier/transférer directement sans passer par les blocs du markdown.
+- Correction : l'onduleur Gruissan est un **DEYE**, pas un SOFAR HYD6000EP (erreur héritée du contexte de reprise du 12 juillet). Document renommé `kilovac-batterie-gruissan-runbook.md` et toutes les mentions corrigées.
+- Fichiers scripts et dashboard fusionnés directement dans les fichiers réels de Gruissan (fournis par l'utilisateur) : `gruissan-scripts-merged.yaml` (contenu actuel de `scripts.yaml` + bloc Kilovac ajouté) et `gruissan-dashboard-scada-merged.yaml` (les 3 vues du dashboard SCADA telles que fournies, carte Kilovac déjà insérée en colonne `center`). Les deux validés par un parseur YAML. Seul le helper `input_boolean` reste un fragment séparé (`configuration.yaml` de Gruissan non fourni, fusion à l'aveugle risquée sur une clé `input_boolean:` potentiellement déjà présente).
 
 ## Checklist de reprise
 
