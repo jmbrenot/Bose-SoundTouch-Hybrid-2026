@@ -54,10 +54,11 @@ Fil noir bobine Kilovac EV200
 - Shelly Plus 1 relié au réseau (`192.168.1.54`), page MQTT renseignée (prefix `shellyplus1-78ee4cc60a6c`, broker `192.168.1.42:1883`) — **non requis pour l'intégration retenue** ; à désactiver ou laisser inutilisé côté HA.
 - Décision confirmée : intégration native Shelly dans HA plutôt que MQTT manuel.
 - Reprise de la checklist à l'étape 1.
+- Étape 1 faite : Shelly Plus 1 intégré dans HA (intégration native).
 
 ## Checklist de reprise
 
-- [ ] 1. Intégrer le Shelly Plus 1 dans HA (intégration native, découverte mDNS depuis `192.168.1.54`)
+- [x] 1. Intégrer le Shelly Plus 1 dans HA (intégration native, découverte mDNS depuis `192.168.1.54`)
 - [ ] 2. Identifier son entité `switch.*` et la renommer clairement (ex. `switch.kilovac_contacteur`)
 - [ ] 3. Régler l'état au démarrage du relais sur **OFF** (paramètre Shelly « Switch on power up » → Always OFF, pas « Restore last state ») — critique pour ne pas refermer le contacteur après une coupure secteur
 - [ ] 4. Tester les I/O du Shelly au multimètre (borne I / borne O), sans la bobine
