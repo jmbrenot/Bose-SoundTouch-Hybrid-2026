@@ -51,11 +51,7 @@ Calqué sur le bloc `kilovac_batterie_auzeville_*` du dashboard SCADA Auzeville,
 
 ### Helper à créer
 
-Fichier fragment : [`kilovac-batterie-gruissan-input-boolean.yaml`](./kilovac-batterie-gruissan-input-boolean.yaml) — bloc `input_boolean:` à fusionner dans `configuration.yaml`. Pas de version « fichier complet » ici : le `configuration.yaml` réel de Gruissan n'a pas été partagé, et une clé `input_boolean:` dupliquée casserait le YAML si elle existe déjà ailleurs. Plus simple et sans risque : créer le helper depuis l'UI —
-
-Réglages → Appareils et services → **Aides** → + → *Interrupteur (toggle)* :
-- Nom : `Kilovac batterie Gruissan - autorisation`
-- Entity ID résultant : `input_boolean.kilovac_batterie_gruissan_autorisation`
+Fichier complet, prêt à remplacer directement `configuration.yaml` : [`gruissan-configuration-merged.yaml`](./gruissan-configuration-merged.yaml). Le `configuration.yaml` réel a été fourni le 10 août 2026 — il avait déjà une clé `input_boolean:` (helpers caméras) ; l'entrée `kilovac_batterie_gruissan_autorisation` a été ajoutée **dans ce bloc existant** (pas de deuxième clé `input_boolean:`, ce qui aurait cassé le fichier). Diff vérifié : seulement 3 lignes ajoutées, rien d'autre modifié. Entity ID résultant : `input_boolean.kilovac_batterie_gruissan_autorisation`.
 
 ### Scripts
 
@@ -274,7 +270,8 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - Décision : abandon définitif du JK-BMS DRY2 dans la boucle de commande (contact sec non fiable) — seul le Shelly pilote la bobine. Câblage cible simplifié en conséquence.
 - Pilotage Home Assistant écrit par analogie avec Auzeville : nouvelle famille d'entités `kilovac_batterie_gruissan_*` (scripts autoriser/interdire/ouvrir/fermer/état), sans confirmation automatique (pas de capteur de tension côté onduleur à Gruissan). Dashboard + synoptique SVG ajoutés au dépôt.
 - Correction : l'onduleur Gruissan est un **DEYE**, pas un SOFAR HYD6000EP (erreur héritée du contexte de reprise du 12 juillet). Document renommé `kilovac-batterie-gruissan-runbook.md` et toutes les mentions corrigées.
-- Fichiers scripts et dashboard fusionnés directement dans les fichiers réels de Gruissan (fournis par l'utilisateur) : `gruissan-scripts-merged.yaml` (contenu actuel de `scripts.yaml` + bloc Kilovac ajouté) et `gruissan-dashboard-scada-merged.yaml` (les 3 vues du dashboard SCADA telles que fournies, carte Kilovac déjà insérée en colonne `center`). Les deux validés par un parseur YAML. Seul le helper `input_boolean` reste un fragment séparé (`configuration.yaml` de Gruissan non fourni, fusion à l'aveugle risquée sur une clé `input_boolean:` potentiellement déjà présente).
+- Fichiers scripts et dashboard fusionnés directement dans les fichiers réels de Gruissan (fournis par l'utilisateur) : `gruissan-scripts-merged.yaml` (contenu actuel de `scripts.yaml` + bloc Kilovac ajouté) et `gruissan-dashboard-scada-merged.yaml` (les 3 vues du dashboard SCADA telles que fournies, carte Kilovac déjà insérée en colonne `center`). Les deux validés par un parseur YAML.
+- `configuration.yaml` réel fourni à son tour : fusion faite dans `gruissan-configuration-merged.yaml`, entrée `kilovac_batterie_gruissan_autorisation` ajoutée dans la clé `input_boolean:` déjà existante (helpers caméras) plutôt que d'en créer une seconde. Diff vérifié : 3 lignes ajoutées, rien d'autre touché. Les 3 fichiers Kilovac (scripts, dashboard, configuration) sont maintenant tous des remplacements complets prêts à l'emploi.
 
 ## Checklist de reprise
 
