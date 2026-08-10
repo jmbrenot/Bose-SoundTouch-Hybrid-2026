@@ -2,6 +2,22 @@
 
 Suivi de projet — intégration de l'onduleur hybride **DEYE SUN-6K-SG05LP1-EU-AM2-P** dans Home Assistant, via une passerelle RS485→Modbus TCP. Le Growatt est déjà intégré via SolaX Modbus (HACS) ; ce document couvre l'ajout du DEYE en complément. Établi le 10 août 2026.
 
+## Checklist Jour J (à suivre dans l'ordre)
+
+1. **Sauvegarde HA avant de commencer** — Réglages → Système → Sauvegardes, ou bouton « Lancer » de la carte Sauvegarde complète (vue Système du dashboard SCADA, `script.sauvegarde_complete_demarrer_dashboard`). Utile vu que `comdif/ha-solarmodbus` est un projet jeune avec accès Modbus en écriture.
+2. **Vérifier le brochage RS485 réel** de l'onduleur (étiquette/manuel du SUN-6K-SG05LP1-EU-AM2-P) contre le tableau de la section « Câblage » ci-dessous — ne pas supposer qu'il est identique au modèle SM2 documenté par le projet.
+3. **Câbler** : Onduleur RS485-A → passerelle borne A, Onduleur RS485-B → passerelle borne B.
+4. **Régler l'ID Modbus de l'onduleur sur `4`** (menu Modbus/RS485 de l'écran ou de l'appli DEYE).
+5. **Fixer l'IP de la passerelle** `192.168.1.170` — réservation DHCP sur le routeur, ou IP statique via l'onglet « Local IP Config » de la passerelle.
+6. **Installer `comdif/ha-solarmodbus`** — SSH sur HA (add-on Terminal & SSH), coller :
+   ```bash
+   mkdir -p /config/custom_components/solarmodbus && curl -fsSL https://github.com/comdif/ha-solarmodbus/archive/refs/heads/main.zip -o /tmp/sm.zip && unzip -o /tmp/sm.zip -d /tmp && mv /tmp/ha-solarmodbus-main/solarmodbus/* /config/custom_components/solarmodbus/ && ha core restart
+   ```
+7. **Ajouter l'intégration** : Réglages → Appareils et services → Ajouter une intégration → *Solarmodbus* → mode **Modbus TCP (Ethernet / LAN)** → `host` `192.168.1.170`, `port` `502`, `slave_id` `4`, `model` `deye_hybrid` → Envoyer.
+8. **Vérifier les entités créées** (SOC batterie, puissance, tension réseau…) contre les valeurs affichées sur l'écran/l'appli de l'onduleur.
+9. **Si tout est bon** : cocher la checklist détaillée plus bas, compléter le journal, puis passer à l'ajout des badges ONDULEUR sur le synoptique Kilovac (`kilovac-batterie-gruissan-runbook.md`, item 9).
+10. **Si ça bloque** : voir la réserve en section « Décision retenue » — se replier sur l'intégration `modbus:` native de HA si le projet a un problème bloquant.
+
 ## Contexte
 
 - Onduleur cible : **DEYE SUN-6K-SG05LP1-EU-AM2-P**.
@@ -124,6 +140,7 @@ Entièrement via l'UI, pas de YAML :
 - Onglet RS485 vérifié : Socket A déjà configuré correctement (TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé). Le `PORT Status: RS232` vu sur la page Current Status était un sélecteur d'affichage, pas le mode actif — fausse alerte corrigée.
 - Reste : câblage physique onduleur → passerelle, vérification du brochage RJ45 exact du modèle AM2, IP fixe, puis installation/config de `comdif/ha-solarmodbus` côté HA.
 - Décision : ID Modbus de l'onduleur DEYE fixé à **4** (à régler côté onduleur ET côté intégration HA — les deux doivent correspondre).
+- Ajout d'une checklist « Jour J » consolidée en tête de document (recherche externe sur le brochage AM2 tentée mais bloquée par la politique réseau de la sandbox — pas d'info supplémentaire trouvée, réserve maintenue). Intégration prévue le lendemain.
 
 ---
 
