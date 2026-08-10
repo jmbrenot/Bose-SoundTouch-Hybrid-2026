@@ -1,0 +1,9 @@
+# A ajouter dans configuration.yaml (section input_boolean), OU a creer
+# via l'UI : Reglages -> Appareils et services -> Aides -> + -> Interrupteur (toggle)
+# Nom : "Kilovac batterie Gruissan - autorisation"
+# Entity ID resultant : input_boolean.kilovac_batterie_gruissan_autorisation
+
+input_boolean:
+  kilovac_batterie_gruissan_autorisation:
+    name: Kilovac batterie Gruissan - autorisation
+    icon: mdi:lock

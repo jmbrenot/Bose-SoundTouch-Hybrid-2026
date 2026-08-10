@@ -1,0 +1,125 @@
+# A coller dans le dashboard SCADA ENERGETIQUE (vue "scada"), colonne
+# "center" (grid-area: center), juste apres la carte entities
+# "Batterie Gruissan JKBMS" et avant le vertical-stack de la colonne "right".
+#
+# Prerequis : image copiee dans /config/www/ (fichier
+# kilovac-batterie-gruissan-synoptique.svg de ce depot), scripts et helper
+# kilovac_batterie_gruissan_* deja en place.
+
+- type: vertical-stack
+  title: Kilovac batterie Gruissan
+  cards:
+    - type: picture-elements
+      image: /local/kilovac-batterie-gruissan-synoptique.svg
+      aspect_ratio: 60%
+      elements:
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: 'on'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Shelly ON
+              style: {left: 50%, top: 45%, color: '#18b85a', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:toggle-switch
+              title: Shelly ON
+              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: 'off'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Shelly OFF
+              style: {left: 50%, top: 45%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:toggle-switch-off
+              title: Shelly OFF
+              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: unavailable
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Shelly indisponible
+              style: {left: 50%, top: 45%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:alert
+              title: Shelly indisponible
+              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+        - type: conditional
+          conditions:
+            - entity: input_boolean.kilovac_batterie_gruissan_autorisation
+              state: 'on'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Fermeture armée
+              style: {left: 80%, top: 88%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:lock-open-check
+              title: Fermeture armée
+              style: {left: 80%, top: 88%, color: '#ffffff', --mdc-icon-size: 22px}
+        - type: conditional
+          conditions:
+            - entity: input_boolean.kilovac_batterie_gruissan_autorisation
+              state: 'off'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Fermeture désarmée
+              style: {left: 80%, top: 88%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:lock
+              title: Fermeture désarmée
+              style: {left: 80%, top: 88%, color: '#ffffff', --mdc-icon-size: 22px}
+    - type: markdown
+      content: >-
+        **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |
+        **Autorisation :** {{ states('input_boolean.kilovac_batterie_gruissan_autorisation') }}
+
+
+        *Pas de confirmation physique automatisée — le JK-BMS n'est plus utilisé dans cette chaîne. Vérifier manuellement l'état réel du contacteur.*
+    - type: grid
+      columns: 2
+      square: false
+      cards:
+        - type: button
+          name: Armer la fermeture
+          icon: mdi:lock-open-check
+          tap_action:
+            action: call-service
+            service: script.turn_on
+            target: {entity_id: script.kilovac_batterie_gruissan_autoriser_fermeture}
+            confirmation: {text: "Autoriser manuellement une future fermeture du Kilovac ?"}
+          card_mod: {style: 'ha-state-icon { color: #20c968 !important; }'}
+        - type: button
+          name: Fermer le Kilovac
+          icon: mdi:electric-switch
+          tap_action:
+            action: call-service
+            service: script.turn_on
+            target: {entity_id: script.kilovac_batterie_gruissan_fermer}
+            confirmation: {text: "Fermer le Kilovac ? Aucune confirmation automatique : vérifiez physiquement."}
+          card_mod: {style: 'ha-state-icon { color: #20c968 !important; }'}
+        - type: button
+          name: Ouvrir le Kilovac
+          icon: mdi:electric-switch-closed
+          tap_action:
+            action: call-service
+            service: script.turn_on
+            target: {entity_id: script.kilovac_batterie_gruissan_ouvrir}
+          card_mod: {style: 'ha-state-icon { color: #ef5350 !important; }'}
+        - type: button
+          name: Ouvrir et désarmer
+          icon: mdi:lock
+          tap_action:
+            action: call-service
+            service: script.turn_on
+            target: {entity_id: script.kilovac_batterie_gruissan_interdire_fermeture}
+          card_mod: {style: 'ha-state-icon { color: #ef5350 !important; }'}

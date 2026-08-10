@@ -1,6 +1,8 @@
-# Kilovac EV200 — Contacteur batterie LiFePO4 → SOFAR HYD6000EP
+# Kilovac EV200 — Contacteur batterie LiFePO4 → onduleur DEYE (Gruissan)
 
-Suivi de projet — commande d'un contacteur TE Kilovac EV200AAANA entre le + batterie LiFePO4 48 V et la borne BAT+ de l'onduleur hybride SOFAR HYD6000EP, piloté depuis Home Assistant. Repris et complété le 10 août 2026 à partir du contexte du 12 juillet 2026 ; pilotage aligné le même jour sur le schéma retenu à Auzeville (Shelly seul, sans JK-BMS dans la boucle de commande).
+Suivi de projet — commande d'un contacteur TE Kilovac EV200AAANA entre le + batterie LiFePO4 48 V et la borne BAT+ de l'onduleur hybride **DEYE**, piloté depuis Home Assistant. Repris et complété le 10 août 2026 à partir du contexte du 12 juillet 2026 ; pilotage aligné le même jour sur le schéma retenu à Auzeville (Shelly seul, sans JK-BMS dans la boucle de commande).
+
+> **Correction du 10 août 2026 :** le contexte de reprise initial (12 juillet 2026) et sa documentation associée nommaient l'onduleur Gruissan « SOFAR HYD6000EP ». C'est inexact — l'onduleur Gruissan est un **DEYE**. Toutes les mentions ont été corrigées dans ce document ; le nom de fichier d'origine côté HA (`KILOVAC_HYD6000EP.md`) garde encore l'ancien libellé.
 
 ## Topologie électrique
 
@@ -8,7 +10,7 @@ Suivi de projet — commande d'un contacteur TE Kilovac EV200AAANA entre le + ba
 |---|---|
 | Batterie LiFePO4 48 V | Source à isoler |
 | TE Kilovac EV200AAANA | Contacteur haute puissance, bobine 12 V DC |
-| SOFAR HYD6000EP | Onduleur hybride, borne BAT+ |
+| Onduleur DEYE | Onduleur hybride, borne BAT+ |
 | Shelly Plus 1 (192.168.1.54) | Commande HA de la bobine (relais sec) — `switch.garage_shellyplus1_kilovac` |
 | Home Assistant | 192.168.1.42 |
 
@@ -49,11 +51,15 @@ Calqué sur le bloc `kilovac_batterie_auzeville_*` du dashboard SCADA Auzeville,
 
 ### Helper à créer
 
+Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-input-boolean.yaml`](./kilovac-batterie-gruissan-input-boolean.yaml) (à coller dans `configuration.yaml`), ou création manuelle :
+
 Réglages → Appareils et services → **Aides** → + → *Interrupteur (toggle)* :
 - Nom : `Kilovac batterie Gruissan - autorisation`
 - Entity ID résultant : `input_boolean.kilovac_batterie_gruissan_autorisation`
 
-### Scripts (`scripts.yaml`, ou Réglages → Automatisations et scènes → Scripts → mode YAML)
+### Scripts
+
+Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-scripts.yaml`](./kilovac-batterie-gruissan-scripts.yaml) — à coller à la fin de `scripts.yaml` (ou Réglages → Automatisations et scènes → Scripts → mode YAML).
 
 ```yaml
 # CODEX KILOVAC BATTERIE GRUISSAN - DEBUT
@@ -127,6 +133,8 @@ kilovac_batterie_gruissan_etat:
 ### Carte dashboard (Lovelace)
 
 Synoptique : `kilovac-batterie-gruissan-synoptique.svg` (dans ce dépôt) — copié dans `/config/www/` sur l'hôte HA Gruissan le 10 août 2026, référencé via `/local/kilovac-batterie-gruissan-synoptique.svg`.
+
+Fichier prêt à l'emploi : [`kilovac-batterie-gruissan-dashboard-card.yaml`](./kilovac-batterie-gruissan-dashboard-card.yaml).
 
 **Emplacement dans le dashboard réel `SCADA ENERGETIQUE` :** insérer le bloc `vertical-stack` ci-dessous dans la colonne `center` de la vue `scada`, juste après la carte `entities` « Batterie Gruissan JKBMS » et avant le `vertical-stack` de la colonne `right`.
 
@@ -265,6 +273,7 @@ Synoptique : `kilovac-batterie-gruissan-synoptique.svg` (dans ce dépôt) — co
 - Étape 2 faite : entité identifiée — `switch.garage_shellyplus1_kilovac`.
 - Décision : abandon définitif du JK-BMS DRY2 dans la boucle de commande (contact sec non fiable) — seul le Shelly pilote la bobine. Câblage cible simplifié en conséquence.
 - Pilotage Home Assistant écrit par analogie avec Auzeville : nouvelle famille d'entités `kilovac_batterie_gruissan_*` (scripts autoriser/interdire/ouvrir/fermer/état), sans confirmation automatique (pas de capteur de tension côté onduleur à Gruissan). Dashboard + synoptique SVG ajoutés au dépôt.
+- Correction : l'onduleur Gruissan est un **DEYE**, pas un SOFAR HYD6000EP (erreur héritée du contexte de reprise du 12 juillet). Document renommé `kilovac-batterie-gruissan-runbook.md` et toutes les mentions corrigées. Fichiers YAML autonomes ajoutés (`kilovac-batterie-gruissan-input-boolean.yaml`, `-scripts.yaml`, `-dashboard-card.yaml`) pour copier/transférer directement sans passer par les blocs du markdown.
 
 ## Checklist de reprise
 
