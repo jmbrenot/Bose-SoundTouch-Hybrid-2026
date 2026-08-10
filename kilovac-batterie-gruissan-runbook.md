@@ -214,12 +214,12 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
           elements:
             - type: icon
               icon: mdi:circle
-              title: Commande active
-              style: {left: 66%, top: 29%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              title: Kilovac commandé fermé
+              style: {left: 50%, top: 34%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
-              icon: mdi:flash
-              title: Commande active
-              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
+              icon: mdi:electric-switch-closed
+              title: Kilovac commandé fermé
+              style: {left: 50%, top: 34%, color: '#ffffff', --mdc-icon-size: 22px}
         - type: conditional
           conditions:
             - entity: switch.garage_shellyplus1_kilovac
@@ -227,12 +227,12 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
           elements:
             - type: icon
               icon: mdi:circle
-              title: Commande inactive
-              style: {left: 66%, top: 29%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              title: Kilovac commandé ouvert
+              style: {left: 50%, top: 34%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
-              icon: mdi:power-plug-off
-              title: Commande inactive
-              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
+              icon: mdi:electric-switch
+              title: Kilovac commandé ouvert
+              style: {left: 50%, top: 34%, color: '#ffffff', --mdc-icon-size: 22px}
         - type: conditional
           conditions:
             - entity: switch.garage_shellyplus1_kilovac
@@ -241,11 +241,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Commande indisponible
-              style: {left: 66%, top: 29%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 50%, top: 34%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:alert
               title: Commande indisponible
-              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
+              style: {left: 50%, top: 34%, color: '#ffffff', --mdc-icon-size: 22px}
     - type: markdown
       content: >-
         **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |
@@ -314,7 +314,8 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - Confirmation utilisateur : bobine EV200 déjà raccordée et testée manuellement, OK. Étapes 4/5/8 de la checklist marquées faites. Étape 3 (réglage « Switch on power up » → Always OFF sur le Shelly) reste à faire — un test manuel du contacteur ne valide pas ce réglage logiciel. À partir du dépôt des fichiers fusionnés, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel batterie ↔ onduleur DEYE.
 - SVG déployé une première fois avec un nom de fichier tronqué (tirets perdus au transfert : `kilovacbatteriegruissansynoptique.svg`) — corrigé côté HA par l'utilisateur.
 - Synoptique repris entièrement pour reprendre la charte visuelle d'Auzeville (fond bleu nuit, cartes arrondies colorées par fonction — bleu batterie/Shelly, orange Kilovac/bobine, vert onduleur, violet alimentation — deux rangées « puissance 48V » / « commande 12V », panneau autorisation), la première version (boîtes grises plates) étant illisible. Coordonnées des icônes superposées recalées en conséquence (Shelly : 50%/58% ; autorisation : 82%/73%) dans `gruissan-dashboard-scada-merged.yaml` et l'extrait du runbook.
-- Ajout d'un badge « Commande active/inactive » sur la rangée du haut (entre KILOVAC et ONDULEUR, 66%/29%), calqué sur le second badge d'Auzeville — piloté par le même `switch.garage_shellyplus1_kilovac` que le badge de la rangée commande. Pas de badge JK-BMS ni de confirmation physique séparée ajoutés sur cette rangée (contrairement à Auzeville) : ces données n'existent pas côté Gruissan, et en ajouter aurait suggéré une confirmation qui n'existe pas.
+- Badge « Kilovac commandé fermé/ouvert » repositionné directement sur la boîte KILOVAC de la rangée du haut (50%/34%, icônes `mdi:electric-switch-closed` / `mdi:electric-switch`), plutôt que sur la flèche suivante — piloté par le même `switch.garage_shellyplus1_kilovac`. Pas de badge JK-BMS ni de confirmation physique séparée sur BATTERIE/ONDULEUR (contrairement à Auzeville) : ces données n'existent pas encore côté Gruissan.
+- **À faire plus tard** (demandé par l'utilisateur) : une fois la nouvelle batterie + ESP32 et l'onduleur DEYE intégrés dans HA, ajouter les badges de statut correspondants sur les boîtes BATTERIE et ONDULEUR du synoptique (communication ESP32/JKBMS, état DEYE), sur le même principe que les badges existants.
 
 ## Checklist de reprise
 
@@ -326,6 +327,7 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - [x] ~~6. Ajouter le JK-BMS DRY2 en série et retester toute la chaîne~~ — abandonné, DRY2 non fiable, retiré du câblage cible
 - [x] 7. Scripts, dashboard et helper Gruissan en place (famille `kilovac_batterie_gruissan_*`, calquée sur Auzeville, sans confirmation automatique) — les 3 fichiers fusionnés (`gruissan-configuration-merged.yaml`, `-scripts-merged.yaml`, `-dashboard-scada-merged.yaml`) prêts à déployer
 - [x] 8. Bobine EV200 raccordée et testée manuellement — OK (10 août 2026). **À partir de maintenant, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel.**
+- [ ] 9. Une fois la nouvelle batterie/ESP32 et l'onduleur DEYE intégrés dans HA : ajouter les badges de statut sur les boîtes BATTERIE et ONDULEUR du synoptique
 
 ## Pièges déjà rencontrés
 

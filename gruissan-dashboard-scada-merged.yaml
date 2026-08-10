@@ -285,19 +285,19 @@ views:
                     elements:
                       - type: icon
                         icon: mdi:circle
-                        title: Commande active
+                        title: Kilovac commandé fermé
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#18b85a'
                           --mdc-icon-size: 40px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
                       - type: icon
-                        icon: mdi:flash
-                        title: Commande active
+                        icon: mdi:electric-switch-closed
+                        title: Kilovac commandé fermé
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
                   - type: conditional
@@ -307,19 +307,19 @@ views:
                     elements:
                       - type: icon
                         icon: mdi:circle
-                        title: Commande inactive
+                        title: Kilovac commandé ouvert
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#e53935'
                           --mdc-icon-size: 40px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
                       - type: icon
-                        icon: mdi:power-plug-off
-                        title: Commande inactive
+                        icon: mdi:electric-switch
+                        title: Kilovac commandé ouvert
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
                   - type: conditional
@@ -331,8 +331,8 @@ views:
                         icon: mdi:circle
                         title: Commande indisponible
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#e53935'
                           --mdc-icon-size: 40px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -340,8 +340,8 @@ views:
                         icon: mdi:alert
                         title: Commande indisponible
                         style:
-                          left: 66%
-                          top: 29%
+                          left: 50%
+                          top: 34%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
               - type: markdown
