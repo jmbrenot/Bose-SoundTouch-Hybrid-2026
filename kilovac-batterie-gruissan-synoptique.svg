@@ -1,57 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" font-family="Helvetica, Arial, sans-serif">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#90a4ae"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#7fa8c9"/>
     </marker>
   </defs>
 
-  <rect x="0" y="0" width="1000" height="600" fill="none"/>
+  <rect x="0" y="0" width="1000" height="600" rx="18" fill="#0e2233"/>
 
-  <text x="500" y="38" text-anchor="middle" fill="#eceff1" font-size="24" font-weight="bold">Kilovac EV200 — Gruissan</text>
-  <text x="500" y="62" text-anchor="middle" fill="#90a4ae" font-size="14">Le Shelly Plus1 pilote seul la bobine — JK-BMS non utilisé dans cette chaîne</text>
+  <text x="500" y="42" text-anchor="middle" fill="#f5f8fa" font-size="24" font-weight="bold">KILOVAC BATTERIE GRUISSAN</text>
+  <text x="500" y="66" text-anchor="middle" fill="#7fa8c9" font-size="13">Le Shelly Plus1 pilote seul la bobine — JK-BMS non utilisé dans cette chaîne</text>
 
-  <!-- Row 1: control chain -->
-  <rect x="40" y="220" width="160" height="100" rx="10" fill="#263238" stroke="#546e7a" stroke-width="2"/>
-  <text x="120" y="264" text-anchor="middle" fill="#eceff1" font-size="16">Alimentation</text>
-  <text x="120" y="284" text-anchor="middle" fill="#eceff1" font-size="16">12 V DC +</text>
+  <!-- Row 1 label -->
+  <text x="50" y="108" fill="#7fa8c9" font-size="13" letter-spacing="1" font-weight="bold">PUISSANCE 48 V</text>
 
-  <line x1="200" y1="270" x2="235" y2="270" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- Row 1: physical power chain -->
+  <rect x="50" y="125" width="230" height="95" rx="12" fill="#123a5c" stroke="#3d8bd4" stroke-width="2"/>
+  <text x="165" y="163" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">BATTERIE</text>
+  <text x="165" y="184" text-anchor="middle" fill="#a9c6de" font-size="12">LiFePO4 48 V</text>
 
-  <rect x="240" y="220" width="120" height="100" rx="10" fill="#263238" stroke="#546e7a" stroke-width="2"/>
-  <text x="300" y="274" text-anchor="middle" fill="#eceff1" font-size="16">Fusible</text>
+  <line x1="280" y1="172" x2="378" y2="172" stroke="#7fa8c9" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-  <line x1="360" y1="270" x2="395" y2="270" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="385" y="125" width="230" height="95" rx="12" fill="#4a2e12" stroke="#ff9800" stroke-width="2"/>
+  <text x="500" y="163" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">KILOVAC</text>
+  <text x="500" y="184" text-anchor="middle" fill="#f0c896" font-size="12">Contacteur EV200AAANA</text>
 
-  <rect x="400" y="220" width="200" height="100" rx="10" fill="#1b3a4b" stroke="#2478b5" stroke-width="2"/>
-  <text x="500" y="260" text-anchor="middle" fill="#eceff1" font-size="16" font-weight="bold">Shelly Plus 1</text>
-  <text x="500" y="280" text-anchor="middle" fill="#b0bec5" font-size="13">borne I → borne O</text>
-  <text x="500" y="298" text-anchor="middle" fill="#b0bec5" font-size="12">switch.garage_shellyplus1_kilovac</text>
+  <line x1="615" y1="172" x2="713" y2="172" stroke="#7fa8c9" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-  <line x1="600" y1="270" x2="635" y2="270" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="720" y="125" width="230" height="95" rx="12" fill="#12402c" stroke="#4caf50" stroke-width="2"/>
+  <text x="835" y="163" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">ONDULEUR</text>
+  <text x="835" y="184" text-anchor="middle" fill="#a9dcb8" font-size="12">DEYE — BAT+</text>
 
-  <rect x="640" y="220" width="220" height="100" rx="10" fill="#263238" stroke="#546e7a" stroke-width="2"/>
-  <text x="750" y="264" text-anchor="middle" fill="#eceff1" font-size="16">Bobine Kilovac</text>
-  <text x="750" y="284" text-anchor="middle" fill="#eceff1" font-size="16">EV200AAANA</text>
+  <!-- Row 2 label -->
+  <text x="50" y="258" fill="#7fa8c9" font-size="13" letter-spacing="1" font-weight="bold">COMMANDE 12 V</text>
 
-  <line x1="120" y1="220" x2="120" y2="180" stroke="#90a4ae" stroke-width="2"/>
-  <text x="120" y="170" text-anchor="middle" fill="#78909c" font-size="12">retour 0 V / -</text>
+  <!-- Row 2: control chain -->
+  <rect x="50" y="275" width="230" height="95" rx="12" fill="#2e1f4a" stroke="#9575cd" stroke-width="2"/>
+  <text x="165" y="313" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">ALIM. 12 V</text>
+  <text x="165" y="334" text-anchor="middle" fill="#cbb8ea" font-size="12">via fusible</text>
 
-  <!-- Row 2: power circuit isolated by the contactor -->
-  <line x1="750" y1="320" x2="750" y2="400" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="280" y1="322" x2="378" y2="322" stroke="#7fa8c9" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-  <rect x="300" y="410" width="400" height="90" rx="10" fill="#2b1f14" stroke="#f39c12" stroke-width="2"/>
-  <text x="500" y="450" text-anchor="middle" fill="#eceff1" font-size="16" font-weight="bold">Contacteur EV200</text>
-  <text x="500" y="470" text-anchor="middle" fill="#d7ccc8" font-size="13">circuit puissance batterie ↔ onduleur</text>
+  <rect x="385" y="275" width="230" height="95" rx="12" fill="#123a5c" stroke="#3d8bd4" stroke-width="2"/>
+  <text x="500" y="308" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">SHELLY PLUS1</text>
+  <text x="500" y="328" text-anchor="middle" fill="#a9c6de" font-size="11">borne I → borne O</text>
+  <circle cx="500" cy="352" r="3" fill="#0e2233" stroke="#3d8bd4" stroke-width="1.5"/>
 
-  <line x1="80" y1="455" x2="295" y2="455" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="80" y="440" text-anchor="start" fill="#eceff1" font-size="14">Batterie LiFePO4 48 V (+)</text>
+  <line x1="615" y1="322" x2="713" y2="322" stroke="#7fa8c9" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-  <line x1="920" y1="455" x2="705" y2="455" stroke="#90a4ae" stroke-width="2" marker-end="url(#arrow)"/>
-  <text x="920" y="440" text-anchor="end" fill="#eceff1" font-size="14">SOFAR HYD6000EP (BAT+)</text>
+  <rect x="720" y="275" width="230" height="95" rx="12" fill="#4a2e12" stroke="#ff9800" stroke-width="2"/>
+  <text x="835" y="313" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="bold">BOBINE</text>
+  <text x="835" y="334" text-anchor="middle" fill="#f0c896" font-size="12">Kilovac EV200</text>
 
-  <!-- Authorization zone -->
-  <rect x="680" y="500" width="240" height="60" rx="10" fill="#1c1c1c" stroke="#546e7a" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <text x="800" y="536" text-anchor="middle" fill="#b0bec5" font-size="13">Autorisation de fermeture</text>
+  <!-- Authorization panel -->
+  <rect x="690" y="405" width="260" height="60" rx="10" fill="#0e2233" stroke="#546e7a" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="820" y="440" text-anchor="middle" fill="#a9c6de" font-size="13">Autorisation de fermeture</text>
 
-  <text x="500" y="580" text-anchor="middle" fill="#78909c" font-size="12">Pas de confirmation physique automatisée — vérifier manuellement l'état réel du contacteur</text>
+  <text x="500" y="580" text-anchor="middle" fill="#5f7f95" font-size="12">Pas de confirmation physique automatisée — vérifier manuellement l'état réel du contacteur</text>
 </svg>

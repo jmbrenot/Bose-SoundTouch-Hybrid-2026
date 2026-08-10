@@ -150,11 +150,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Shelly ON
-              style: {left: 50%, top: 45%, color: '#18b85a', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 50%, top: 58%, color: '#18b85a', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:toggle-switch
               title: Shelly ON
-              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+              style: {left: 50%, top: 58%, color: '#ffffff', --mdc-icon-size: 25px}
         - type: conditional
           conditions:
             - entity: switch.garage_shellyplus1_kilovac
@@ -163,11 +163,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Shelly OFF
-              style: {left: 50%, top: 45%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 50%, top: 58%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:toggle-switch-off
               title: Shelly OFF
-              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+              style: {left: 50%, top: 58%, color: '#ffffff', --mdc-icon-size: 25px}
         - type: conditional
           conditions:
             - entity: switch.garage_shellyplus1_kilovac
@@ -176,11 +176,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Shelly indisponible
-              style: {left: 50%, top: 45%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 50%, top: 58%, color: '#e53935', --mdc-icon-size: 44px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:alert
               title: Shelly indisponible
-              style: {left: 50%, top: 45%, color: '#ffffff', --mdc-icon-size: 25px}
+              style: {left: 50%, top: 58%, color: '#ffffff', --mdc-icon-size: 25px}
         - type: conditional
           conditions:
             - entity: input_boolean.kilovac_batterie_gruissan_autorisation
@@ -189,11 +189,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Fermeture armée
-              style: {left: 80%, top: 88%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 82%, top: 73%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:lock-open-check
               title: Fermeture armée
-              style: {left: 80%, top: 88%, color: '#ffffff', --mdc-icon-size: 22px}
+              style: {left: 82%, top: 73%, color: '#ffffff', --mdc-icon-size: 22px}
         - type: conditional
           conditions:
             - entity: input_boolean.kilovac_batterie_gruissan_autorisation
@@ -202,11 +202,11 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
             - type: icon
               icon: mdi:circle
               title: Fermeture désarmée
-              style: {left: 80%, top: 88%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+              style: {left: 82%, top: 73%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
             - type: icon
               icon: mdi:lock
               title: Fermeture désarmée
-              style: {left: 80%, top: 88%, color: '#ffffff', --mdc-icon-size: 22px}
+              style: {left: 82%, top: 73%, color: '#ffffff', --mdc-icon-size: 22px}
     - type: markdown
       content: >-
         **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |
@@ -273,6 +273,8 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - Fichiers scripts et dashboard fusionnés directement dans les fichiers réels de Gruissan (fournis par l'utilisateur) : `gruissan-scripts-merged.yaml` (contenu actuel de `scripts.yaml` + bloc Kilovac ajouté) et `gruissan-dashboard-scada-merged.yaml` (les 3 vues du dashboard SCADA telles que fournies, carte Kilovac déjà insérée en colonne `center`). Les deux validés par un parseur YAML.
 - `configuration.yaml` réel fourni à son tour : fusion faite dans `gruissan-configuration-merged.yaml`, entrée `kilovac_batterie_gruissan_autorisation` ajoutée dans la clé `input_boolean:` déjà existante (helpers caméras) plutôt que d'en créer une seconde. Diff vérifié : 3 lignes ajoutées, rien d'autre touché. Les 3 fichiers Kilovac (scripts, dashboard, configuration) sont maintenant tous des remplacements complets prêts à l'emploi.
 - Confirmation utilisateur : bobine EV200 déjà raccordée et testée manuellement, OK. Étapes 4/5/8 de la checklist marquées faites. Étape 3 (réglage « Switch on power up » → Always OFF sur le Shelly) reste à faire — un test manuel du contacteur ne valide pas ce réglage logiciel. À partir du dépôt des fichiers fusionnés, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel batterie ↔ onduleur DEYE.
+- SVG déployé une première fois avec un nom de fichier tronqué (tirets perdus au transfert : `kilovacbatteriegruissansynoptique.svg`) — corrigé côté HA par l'utilisateur.
+- Synoptique repris entièrement pour reprendre la charte visuelle d'Auzeville (fond bleu nuit, cartes arrondies colorées par fonction — bleu batterie/Shelly, orange Kilovac/bobine, vert onduleur, violet alimentation — deux rangées « puissance 48V » / « commande 12V », panneau autorisation), la première version (boîtes grises plates) étant illisible. Coordonnées des icônes superposées recalées en conséquence (Shelly : 50%/58% ; autorisation : 82%/73%) dans `gruissan-dashboard-scada-merged.yaml` et l'extrait du runbook.
 
 ## Checklist de reprise
 

@@ -178,7 +178,7 @@ views:
                         title: Shelly ON
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#18b85a'
                           --mdc-icon-size: 44px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -187,7 +187,7 @@ views:
                         title: Shelly ON
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#ffffff'
                           --mdc-icon-size: 25px
                   - type: conditional
@@ -200,7 +200,7 @@ views:
                         title: Shelly OFF
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#e53935'
                           --mdc-icon-size: 44px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -209,7 +209,7 @@ views:
                         title: Shelly OFF
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#ffffff'
                           --mdc-icon-size: 25px
                   - type: conditional
@@ -222,7 +222,7 @@ views:
                         title: Shelly indisponible
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#e53935'
                           --mdc-icon-size: 44px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -231,7 +231,7 @@ views:
                         title: Shelly indisponible
                         style:
                           left: 50%
-                          top: 45%
+                          top: 58%
                           color: '#ffffff'
                           --mdc-icon-size: 25px
                   - type: conditional
@@ -243,8 +243,8 @@ views:
                         icon: mdi:circle
                         title: Fermeture armée
                         style:
-                          left: 80%
-                          top: 88%
+                          left: 82%
+                          top: 73%
                           color: '#18b85a'
                           --mdc-icon-size: 40px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -252,8 +252,8 @@ views:
                         icon: mdi:lock-open-check
                         title: Fermeture armée
                         style:
-                          left: 80%
-                          top: 88%
+                          left: 82%
+                          top: 73%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
                   - type: conditional
@@ -265,8 +265,8 @@ views:
                         icon: mdi:circle
                         title: Fermeture désarmée
                         style:
-                          left: 80%
-                          top: 88%
+                          left: 82%
+                          top: 73%
                           color: '#e53935'
                           --mdc-icon-size: 40px
                           filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
@@ -274,8 +274,8 @@ views:
                         icon: mdi:lock
                         title: Fermeture désarmée
                         style:
-                          left: 80%
-                          top: 88%
+                          left: 82%
+                          top: 73%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
               - type: markdown
