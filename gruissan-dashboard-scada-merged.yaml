@@ -278,6 +278,72 @@ views:
                           top: 73%
                           color: '#ffffff'
                           --mdc-icon-size: 22px
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: 'on'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Commande active
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#18b85a'
+                          --mdc-icon-size: 40px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:flash
+                        title: Commande active
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#ffffff'
+                          --mdc-icon-size: 22px
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: 'off'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Commande inactive
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#e53935'
+                          --mdc-icon-size: 40px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:power-plug-off
+                        title: Commande inactive
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#ffffff'
+                          --mdc-icon-size: 22px
+                  - type: conditional
+                    conditions:
+                      - entity: switch.garage_shellyplus1_kilovac
+                        state: unavailable
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Commande indisponible
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#e53935'
+                          --mdc-icon-size: 40px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:alert
+                        title: Commande indisponible
+                        style:
+                          left: 66%
+                          top: 29%
+                          color: '#ffffff'
+                          --mdc-icon-size: 22px
               - type: markdown
                 content: >-
                   **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |

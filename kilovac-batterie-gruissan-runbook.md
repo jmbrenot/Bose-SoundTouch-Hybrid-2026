@@ -207,6 +207,45 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
               icon: mdi:lock
               title: Fermeture désarmée
               style: {left: 82%, top: 73%, color: '#ffffff', --mdc-icon-size: 22px}
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: 'on'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Commande active
+              style: {left: 66%, top: 29%, color: '#18b85a', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:flash
+              title: Commande active
+              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: 'off'
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Commande inactive
+              style: {left: 66%, top: 29%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:power-plug-off
+              title: Commande inactive
+              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
+        - type: conditional
+          conditions:
+            - entity: switch.garage_shellyplus1_kilovac
+              state: unavailable
+          elements:
+            - type: icon
+              icon: mdi:circle
+              title: Commande indisponible
+              style: {left: 66%, top: 29%, color: '#e53935', --mdc-icon-size: 40px, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.55))'}
+            - type: icon
+              icon: mdi:alert
+              title: Commande indisponible
+              style: {left: 66%, top: 29%, color: '#ffffff', --mdc-icon-size: 22px}
     - type: markdown
       content: >-
         **Commande Shelly :** {{ states('switch.garage_shellyplus1_kilovac') }} |
@@ -275,6 +314,7 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - Confirmation utilisateur : bobine EV200 déjà raccordée et testée manuellement, OK. Étapes 4/5/8 de la checklist marquées faites. Étape 3 (réglage « Switch on power up » → Always OFF sur le Shelly) reste à faire — un test manuel du contacteur ne valide pas ce réglage logiciel. À partir du dépôt des fichiers fusionnés, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel batterie ↔ onduleur DEYE.
 - SVG déployé une première fois avec un nom de fichier tronqué (tirets perdus au transfert : `kilovacbatteriegruissansynoptique.svg`) — corrigé côté HA par l'utilisateur.
 - Synoptique repris entièrement pour reprendre la charte visuelle d'Auzeville (fond bleu nuit, cartes arrondies colorées par fonction — bleu batterie/Shelly, orange Kilovac/bobine, vert onduleur, violet alimentation — deux rangées « puissance 48V » / « commande 12V », panneau autorisation), la première version (boîtes grises plates) étant illisible. Coordonnées des icônes superposées recalées en conséquence (Shelly : 50%/58% ; autorisation : 82%/73%) dans `gruissan-dashboard-scada-merged.yaml` et l'extrait du runbook.
+- Ajout d'un badge « Commande active/inactive » sur la rangée du haut (entre KILOVAC et ONDULEUR, 66%/29%), calqué sur le second badge d'Auzeville — piloté par le même `switch.garage_shellyplus1_kilovac` que le badge de la rangée commande. Pas de badge JK-BMS ni de confirmation physique séparée ajoutés sur cette rangée (contrairement à Auzeville) : ces données n'existent pas côté Gruissan, et en ajouter aurait suggéré une confirmation qui n'existe pas.
 
 ## Checklist de reprise
 
