@@ -126,7 +126,9 @@ kilovac_batterie_gruissan_etat:
 
 ### Carte dashboard (Lovelace)
 
-Synoptique : `kilovac-batterie-gruissan-synoptique.svg` (dans ce dépôt) — à copier dans `/config/www/` sur l'hôte HA Gruissan, puis référencer via `/local/kilovac-batterie-gruissan-synoptique.svg`.
+Synoptique : `kilovac-batterie-gruissan-synoptique.svg` (dans ce dépôt) — copié dans `/config/www/` sur l'hôte HA Gruissan le 10 août 2026, référencé via `/local/kilovac-batterie-gruissan-synoptique.svg`.
+
+**Emplacement dans le dashboard réel `SCADA ENERGETIQUE` :** insérer le bloc `vertical-stack` ci-dessous dans la colonne `center` de la vue `scada`, juste après la carte `entities` « Batterie Gruissan JKBMS » et avant le `vertical-stack` de la colonne `right`.
 
 ```yaml
 - type: vertical-stack
