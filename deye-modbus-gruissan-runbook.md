@@ -5,7 +5,8 @@ Suivi de projet — intégration de l'onduleur hybride **DEYE SUN-6K-SG05LP1-EU-
 ## Contexte
 
 - Onduleur cible : **DEYE SUN-6K-SG05LP1-EU-AM2-P**.
-- Matériel de liaison : passerelle Modbus TCP / RS485 (déjà en possession de l'utilisateur).
+- Matériel de liaison : passerelle **USR-TCP232-410S** (USR IOT), nom de module `INVERT-TCP232-410S`, IP `192.168.1.170`, firmware V8.0.12.000000.0000, MAC `D4-AD-20-83-E7-FE`. Confirmé le 10 août 2026 via l'interface web du module.
+- Le sélecteur `PORT Status: RS232` sur la page « Current Status » est un sélecteur d'affichage de statistiques par port, pas une indication du mode actif — l'onglet **RS485** dédié montre une configuration déjà en place et cohérente (voir ci-dessous), donc pas de bascule nécessaire de ce côté.
 - Intégration existante pour le Growatt : `wills106/homeassistant-solax-modbus` (HACS), avec un merge local automatisé (`script.solax_modbus_update_hacs_then_merge` dans `scripts.yaml`).
 
 ## Options évaluées
@@ -57,15 +58,32 @@ Choix retenu dans la doc : Pin 1 (Blanc/Orange) = RS485-A, Pin 2 (Orange) = RS48
 
 Câblage générique vers la passerelle : `Onduleur RS485-A → Passerelle A`, `Onduleur RS485-B → Passerelle B`.
 
-## Configuration de la passerelle (référence : EBYTE NA111)
+## Configuration de la passerelle
 
-Paramètres utilisés dans la doc du projet, à adapter selon le modèle de passerelle réel :
+### Matériel réel : USR-TCP232-410S (192.168.1.170)
+
+La doc du projet `comdif/ha-solarmodbus` utilise un EBYTE NA111 comme référence, mais la passerelle réelle côté Gruissan est un **USR-TCP232-410S**. Onglet **RS485** vérifié le 10 août 2026 — la configuration Socket A est **déjà en place et correcte** :
+
+| Paramètre | Valeur constatée | Statut |
+|---|---|---|
+| Baud Rate | 9600 | ✅ Standard Deye/Modbus |
+| Data bit / Parity / Stop bit | 8 / None / 1 | ✅ 8-N-1 standard |
+| Flow ctrl | NONE | ✅ |
+| Socket A — Work Mode | **TCP Server** | ✅ |
+| Socket A — Protocole | **ModbusTCP** (menu déroulant à côté de Work Mode) | ✅ — c'est l'équivalent de la conversion Modbus TCP↔RTU de la doc de référence |
+| Socket A — Local Port Number | **502** | ✅ Correspond à ce qu'attend `comdif/ha-solarmodbus` |
+| Socket A — Modbus Poll | Activé, timeout 200 ms | ✅ |
+| Socket A — TCP Server MAX Sockets | 8, Up to MAX: KICK | OK par défaut |
+| Socket B | WorkMode: NONE | Inutilisé, normal |
+
+**Rien à changer sur cette page.** Reste à vérifier : `Local IP Config` (IP fixe plutôt que bail DHCP) et `RS232` (s'assurer qu'aucun autre appareil ne dépend de ce port sur la même passerelle, sans impact sur RS485).
+
+### Paramètres cibles (pour référence / autre matériel)
 
 - Work mode : **TCP server**
 - Local port : **502**
 - Baud rate : **9600**, Data bit 8, Parity NONE, Stop bit 1
-- MODBUS TCP to RTU : **Open**
-- Target IP / Target port : sans effet en mode TCP server, à ignorer
+- Conversion Modbus TCP ↔ RTU : **activée** (ici via le protocole « ModbusTCP » du Work Mode)
 
 ## Configuration Home Assistant
 
@@ -75,7 +93,7 @@ Entièrement via l'UI, pas de YAML :
 2. Rechercher **Solarmodbus**
 3. Mode : **Modbus TCP (Ethernet / LAN)**
 4. Renseigner :
-   - `host` : IP de la passerelle
+   - `host` : `192.168.1.170` (USR-TCP232-410S)
    - `port` : `502`
    - `slave_id` : `1` (valeur par défaut de la doc — à confirmer si l'onduleur a un ID Modbus différent)
    - `model` : **`deye_hybrid`**
@@ -83,11 +101,13 @@ Entièrement via l'UI, pas de YAML :
 
 ## Checklist
 
+- [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
+- [x] Passerelle configurée côté RS485/Socket A : TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé (constaté déjà en place le 10 août 2026)
 - [ ] Confirmer le brochage RS485 exact du SUN-6K-SG05LP1-EU-AM2-P (étiquette/manuel, peut différer du SG05LP1-EU-SM2-P documenté)
 - [ ] Câbler l'onduleur → passerelle (A/B)
-- [ ] Configurer la passerelle (TCP server, port 502, 9600-8-N-1, Modbus TCP to RTU: Open)
+- [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change
 - [ ] Installer `comdif/ha-solarmodbus` dans `custom_components`
-- [ ] Ajouter l'intégration via l'UI (mode TCP, host, port 502, slave_id, modèle `deye_hybrid`)
+- [ ] Ajouter l'intégration via l'UI (mode TCP, host `192.168.1.170`, port 502, slave_id, modèle `deye_hybrid`)
 - [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
@@ -95,6 +115,13 @@ Entièrement via l'UI, pas de YAML :
 
 - Dépôt : `github.com/comdif/ha-solarmodbus`
 - Doc de configuration (PDF fourni dans le dépôt) : `solarmodbus.pdf` — utilise le Deye SG05LP1-EU-SM2-P comme modèle de référence pour tout le guide de câblage et configuration.
+
+## Journal
+
+### 10 août 2026
+- Passerelle réelle identifiée : USR-TCP232-410S (pas l'EBYTE NA111 de la doc de référence), IP `192.168.1.170`, firmware V8.0.12.
+- Onglet RS485 vérifié : Socket A déjà configuré correctement (TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé). Le `PORT Status: RS232` vu sur la page Current Status était un sélecteur d'affichage, pas le mode actif — fausse alerte corrigée.
+- Reste : câblage physique onduleur → passerelle, vérification du brochage RJ45 exact du modèle AM2, IP fixe, puis installation/config de `comdif/ha-solarmodbus` côté HA.
 
 ---
 
