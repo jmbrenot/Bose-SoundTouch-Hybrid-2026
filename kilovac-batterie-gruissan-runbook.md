@@ -328,7 +328,7 @@ Extrait de la carte seule (pour référence / relecture) — déjà intégrée d
 - [x] ~~6. Ajouter le JK-BMS DRY2 en série et retester toute la chaîne~~ — abandonné, DRY2 non fiable, retiré du câblage cible
 - [x] 7. Scripts, dashboard et helper Gruissan en place (famille `kilovac_batterie_gruissan_*`, calquée sur Auzeville, sans confirmation automatique) — les 3 fichiers fusionnés (`gruissan-configuration-merged.yaml`, `-scripts-merged.yaml`, `-dashboard-scada-merged.yaml`) prêts à déployer
 - [x] 8. Bobine EV200 raccordée et testée manuellement — OK (10 août 2026). **À partir de maintenant, les boutons Fermer/Ouvrir du dashboard opèrent le contacteur réel.**
-- [ ] 9. Une fois la nouvelle batterie/ESP32 et l'onduleur DEYE intégrés dans HA : ajouter les badges de statut sur les boîtes BATTERIE et ONDULEUR du synoptique
+- [ ] 9. Une fois la nouvelle batterie/ESP32 et l'onduleur DEYE intégrés dans HA (suivi dans [`deye-modbus-gruissan-runbook.md`](./deye-modbus-gruissan-runbook.md)) : ajouter les badges de statut sur les boîtes BATTERIE et ONDULEUR du synoptique
 
 ## Pièges déjà rencontrés
 
