@@ -95,7 +95,7 @@ Entièrement via l'UI, pas de YAML :
 4. Renseigner :
    - `host` : `192.168.1.170` (USR-TCP232-410S)
    - `port` : `502`
-   - `slave_id` : `1` (valeur par défaut de la doc — à confirmer si l'onduleur a un ID Modbus différent)
+   - `slave_id` : **`4`** (choisi par l'utilisateur — doit être réglé à l'identique côté onduleur, voir menu Modbus/RS485 du DEYE ; le Growatt et tout autre appareil Modbus sur le même bus doivent avoir un ID différent)
    - `model` : **`deye_hybrid`**
 5. Envoyer — les entités apparaissent automatiquement.
 
@@ -105,9 +105,10 @@ Entièrement via l'UI, pas de YAML :
 - [x] Passerelle configurée côté RS485/Socket A : TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé (constaté déjà en place le 10 août 2026)
 - [ ] Confirmer le brochage RS485 exact du SUN-6K-SG05LP1-EU-AM2-P (étiquette/manuel, peut différer du SG05LP1-EU-SM2-P documenté)
 - [ ] Câbler l'onduleur → passerelle (A/B)
+- [ ] Régler l'ID Modbus de l'onduleur DEYE sur **4** (menu Modbus/RS485 de l'écran ou de l'appli DEYE) — doit correspondre au `slave_id` saisi côté HA
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change
 - [ ] Installer `comdif/ha-solarmodbus` dans `custom_components`
-- [ ] Ajouter l'intégration via l'UI (mode TCP, host `192.168.1.170`, port 502, slave_id, modèle `deye_hybrid`)
+- [ ] Ajouter l'intégration via l'UI (mode TCP, host `192.168.1.170`, port 502, slave_id **4**, modèle `deye_hybrid`)
 - [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
@@ -122,6 +123,7 @@ Entièrement via l'UI, pas de YAML :
 - Passerelle réelle identifiée : USR-TCP232-410S (pas l'EBYTE NA111 de la doc de référence), IP `192.168.1.170`, firmware V8.0.12.
 - Onglet RS485 vérifié : Socket A déjà configuré correctement (TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé). Le `PORT Status: RS232` vu sur la page Current Status était un sélecteur d'affichage, pas le mode actif — fausse alerte corrigée.
 - Reste : câblage physique onduleur → passerelle, vérification du brochage RJ45 exact du modèle AM2, IP fixe, puis installation/config de `comdif/ha-solarmodbus` côté HA.
+- Décision : ID Modbus de l'onduleur DEYE fixé à **4** (à régler côté onduleur ET côté intégration HA — les deux doivent correspondre).
 
 ---
 
