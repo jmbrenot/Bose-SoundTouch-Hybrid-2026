@@ -119,10 +119,11 @@ Entièrement via l'UI, pas de YAML :
 
 - [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
 - [x] Passerelle configurée côté RS485/Socket A : TCP Server + ModbusTCP, port 502, 9600-8-N-1, Modbus Poll activé (constaté déjà en place le 10 août 2026)
-- [ ] Confirmer le brochage RS485 exact du SUN-6K-SG05LP1-EU-AM2-P (étiquette/manuel, peut différer du SG05LP1-EU-SM2-P documenté)
-- [ ] Câbler l'onduleur → passerelle (A/B)
-- [ ] Régler l'ID Modbus de l'onduleur DEYE sur **4** (menu Modbus/RS485 de l'écran ou de l'appli DEYE) — doit correspondre au `slave_id` saisi côté HA
-- [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change
+- [x] Brochage RS485 confirmé en pratique (câblage fait, onduleur démarré et raccordé)
+- [x] Onduleur câblé → passerelle (A/B)
+- [x] ID Modbus de l'onduleur DEYE réglé sur **4**
+- [x] Onduleur démarré et raccordé à la passerelle USR `192.168.1.170`
+- [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
 - [ ] Installer `comdif/ha-solarmodbus` dans `custom_components`
 - [ ] Ajouter l'intégration via l'UI (mode TCP, host `192.168.1.170`, port 502, slave_id **4**, modèle `deye_hybrid`)
 - [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
@@ -141,6 +142,10 @@ Entièrement via l'UI, pas de YAML :
 - Reste : câblage physique onduleur → passerelle, vérification du brochage RJ45 exact du modèle AM2, IP fixe, puis installation/config de `comdif/ha-solarmodbus` côté HA.
 - Décision : ID Modbus de l'onduleur DEYE fixé à **4** (à régler côté onduleur ET côté intégration HA — les deux doivent correspondre).
 - Ajout d'une checklist « Jour J » consolidée en tête de document (recherche externe sur le brochage AM2 tentée mais bloquée par la politique réseau de la sandbox — pas d'info supplémentaire trouvée, réserve maintenue). Intégration prévue le lendemain.
+
+### 11 août 2026
+- Étapes 1 à 5 de la checklist Jour J faites : onduleur DEYE câblé, démarré, ID Modbus réglé sur `4`, raccordé à la passerelle USR-TCP232-410S (`192.168.1.170`).
+- Reste : confirmer l'IP fixe côté passerelle/routeur, installer `comdif/ha-solarmodbus`, ajouter l'intégration côté HA (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`), puis vérifier les entités.
 
 ---
 
