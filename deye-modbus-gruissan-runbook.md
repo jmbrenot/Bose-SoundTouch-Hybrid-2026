@@ -196,6 +196,15 @@ Le bus RS485 derrière la passerelle USR-TCP232-410S (`192.168.1.170`) est **par
 
 C'est la même famille de problème que la contention Solarman/Solarmodbus du 12-13 août, mais cette fois il n'y a pas d'intégration « en trop » à supprimer : **SolaX Modbus (Growatt) est en production et doit rester actif**. Il faut donc arbitrer l'accès au bus entre les deux maîtres plutôt que d'en supprimer un.
 
+### ⚠️ Rectification (13 août 2026, plus tard dans la journée)
+
+En vérifiant précisément quelle intégration correspond à quelles adresses dans les trames brutes du log, correction nécessaire :
+
+- Les **464 lignes de trafic esclave `0x65` (101 décimal)** ne viennent **pas** de SolaX Modbus/Growatt : elles correspondent exactement au hub `modbus:` **`hoymiles`** déjà existant dans `gruissan-configuration-merged.yaml`, qui tourne en **série** sur un dongle USB (`port: /dev/serial/by-id/usb-1a86_USB2.0-Ser_-if00-port0`), avec `slave: 101` sur tous ses capteurs. Les adresses vues dans le log (ex. `0x1010` = 4112 décimal) correspondent pile à « Micro-onduleur 1 Puissance ». Ce trafic n'a physiquement rien à voir avec la passerelle `.170` — bus RS485 différent (dongle USB local vs passerelle réseau).
+- L'anomalie `request ask for id=4 but got id=1` vient très probablement de **`hoymiles_modbus_tcp`**, une intégration séparée (visible dans les logs de démarrage) qui échoue en boucle à se connecter à un **autre hôte** (`192.168.1.150:101`, pas `.170`) — sans rapport avec le DEYE non plus.
+- **Seules les lignes contenant explicitement `AsyncModbusTcpClient 192.168.1.170:502` sont fiables pour diagnostiquer le hub `deye`** — elles montrent uniquement des timeouts puis `Not connected`, sans qu'aucune trace directe de SolaX Modbus sur cette même IP n'apparaisse dans ce log (SolaX Modbus n'y logue pas ses propres échanges à ce niveau de verbosité).
+- **Conclusion révisée** : la contention SolaX Modbus/Growatt reste une hypothèse plausible (Growatt est bien câblé sur la passerelle `.170` d'après le contexte initial du projet), mais elle n'est **pas prouvée** par ce log — les preuves avancées initialement pointaient en réalité vers d'autres connexions sans rapport. La cause exacte du blocage total du hub `deye` reste à confirmer.
+
 ### Options de correction
 
 | Option | Description | Compromis |
