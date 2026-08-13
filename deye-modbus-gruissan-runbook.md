@@ -152,7 +152,7 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 - [x] `comdif/ha-solarmodbus` installé dans `custom_components` (12/13 août 2026)
 - [x] Intégration ajoutée via l'UI (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`) — mais échec au premier refresh, voir « Dépannage » ci-dessus
 - [ ] Supprimer l'intégration Solarman (contention sur le bus RS485)
-- [ ] Augmenter le timeout Modbus de la passerelle (200 ms → 1000 ms)
+- [x] Augmenter le timeout Modbus de la passerelle (200 ms → 1000 ms) — confirmé le 13 août 2026 sur l'onglet RS485
 - [ ] Recréer proprement l'intégration Solarmodbus et vérifier
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
 - [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
