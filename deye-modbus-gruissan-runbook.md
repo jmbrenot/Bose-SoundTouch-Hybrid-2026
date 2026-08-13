@@ -178,6 +178,34 @@ Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, do
 
 **Décision finale : abandon de `comdif/ha-solarmodbus`, le `modbus:` natif devient la solution retenue**, pas juste une solution de repli. Le hub `deye` a été réactivé dans `gruissan-configuration-merged.yaml` (commit `44a9e23`).
 
+## Nouvelle contention détectée : SolaX Modbus (Growatt) vs `modbus:` natif (13 août 2026)
+
+### Constat
+
+Log frais fourni (`387f60af-homeassistant_...log`, 1365 lignes) après confirmation que Solarman/Solarmodbus sont bien absents de la liste des intégrations. Diagnostic :
+
+- **Solarman/Solarmodbus** : confirmé absents — seuls des avertissements génériques « intégration non testée » au démarrage, aucune entrée de config active, aucune erreur de coordinator. Cette piste est bien éliminée.
+- **Hub `modbus:` natif « deye »** : échoue en totalité. Dizaines de lignes `ERROR [pymodbus.logging] No response received after 3 retries` puis `Pymodbus: deye: Error: device: 4 address: <N> -> ... No response received`, pour quasiment toutes les adresses du hub (194, 186, 187, 109, 111, 108, 96, 184, 183, 191, 190, 182, 70, 71, 72, 74, 169, 172, 150, 79, 76, 77, 78, 81…), jusqu'à `CLOSING CONNECTION` puis `[Connection] Not connected`.
+- **Nouvelle anomalie** : `ERROR: request ask for id=4 but got id=1, Skipping.` — une trame reçue sur la connexion du hub `deye` ne correspond pas à l'esclave attendu.
+- **Cause trouvée dans le détail des trames brutes (`send:`/`recv:` en hexa, activées par le logging pymodbus)** : sur l'ensemble du log, **464 lignes** d'échanges `0x65 0x3 ...` (esclave Modbus `0x65` = **101 décimal**, lecture de registre par registre, en boucle continue, un cycle toutes les ~100 ms environ) — cohérent avec **SolaX Modbus qui interroge le Growatt en continu**, visible dans la liste des intégrations actives (« SolaX Inverter Modbus »). **Aucune trame de réponse à l'esclave `4` (le DEYE) n'apparaît nulle part dans le log.**
+- Trafic MBAP (Modbus TCP, en-tête 7 octets) avec esclave `1` également visible par intermittence — probablement le hub `hoymiles_modbus_tcp` ou un autre client, à confirmer, mais non prioritaire : la cause principale du blocage total du hub `deye` est le trafic RS485 continu de SolaX Modbus/Growatt sur la même passerelle.
+
+### Diagnostic
+
+Le bus RS485 derrière la passerelle USR-TCP232-410S (`192.168.1.170`) est **partagé entre le Growatt (SolaX Modbus, esclave probable 101) et le DEYE (hub natif, esclave 4)**. SolaX Modbus poll en continu et très fréquemment (survey rate court, lecture registre par registre). RS485 étant half-duplex, ce trafic quasi permanent laisse très peu de fenêtres libres pour le hub `deye`, et les rares tentatives se font écraser/décaler par le trafic Growatt en cours — d'où les timeouts systématiques et l'erreur d'ID croisé.
+
+C'est la même famille de problème que la contention Solarman/Solarmodbus du 12-13 août, mais cette fois il n'y a pas d'intégration « en trop » à supprimer : **SolaX Modbus (Growatt) est en production et doit rester actif**. Il faut donc arbitrer l'accès au bus entre les deux maîtres plutôt que d'en supprimer un.
+
+### Options de correction
+
+| Option | Description | Compromis |
+|---|---|---|
+| **A. Proxy Modbus TCP sérialisant** | Insérer un proxy (ex. `Xerolux/modbridge`, `streef/modbus-proxy`) entre HA et la passerelle `.170` : lui seul ouvre une vraie connexion vers la passerelle, SolaX Modbus et le hub `deye` se connectent tous les deux au proxy (ports différents ou même port), qui sérialise les requêtes une par une avant de les transmettre au bus réel. | Aucune perte de fonctionnalité côté Growatt (SolaX Modbus intact). Demande d'installer/héberger un service supplémentaire (add-on local, conteneur Docker, ou petit service sur un autre hôte du réseau) — infrastructure à mettre en place sur votre installation, hors de ce dépôt Git. |
+| **B. Migrer le Growatt vers `modbus:` natif aussi** | Redéfinir les capteurs Growatt utiles en YAML dans le même hub natif que le DEYE (un seul maître Modbus au total pour toute la passerelle `.170`), puis désinstaller SolaX Modbus. | Pas d'infra supplémentaire. Mais perte des fonctionnalités avancées de SolaX Modbus (tableau de bord Énergie intégré, entités `number`/`button` de pilotage batterie, mises à jour du plugin Growatt) sauf à les recréer à la main — travail plus long. |
+| **C. Séparer physiquement les bus** | Ajouter une deuxième passerelle RS485→TCP (ou dongle USB-RS485 sur l'hôte HA) dédiée uniquement au DEYE, sur un câblage RS485 indépendant de celui du Growatt. | Solution la plus robuste (plus de contention possible, chaque maître a son propre bus), mais nécessite du matériel supplémentaire et implique de retirer le DEYE du bus partagé actuel (recâblage). |
+
+Aucune de ces options ne se fait par un simple changement de fichier YAML dans ce dépôt (A et C demandent de l'infra/matériel côté utilisateur, B est un chantier YAML plus lourd) — décision à prendre avec l'utilisateur avant d'implémenter.
+
 ## Checklist
 
 - [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
@@ -200,7 +228,9 @@ Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, do
 - [x] Table de registres validée trouvée : `VMrenato/homeassistant-deye-tcan485-esphome`, testée sur un SUN-6K-SG05LP1-EU-AM2-P réel identique au nôtre. Confirme la plupart des adresses de `deye_hybrid.yaml`, mais corrige `Total Grid Import`/`Total Grid Export` (registres simples 78/81, pas des paires 32 bits) et confirme l'ordre **mot faible d'abord** pour les compteurs 32 bits.
 - [x] Cause probable identifiée dans leur doc de dépannage : requêtes Modbus trop rapprochées pour un bus RS485 lent (9600 bauds) font atterrir les valeurs sur le mauvais capteur — symptôme identique au nôtre. Ajout de `message_wait_milliseconds: 100` au hub pour espacer les requêtes.
 - [x] Hub `deye` entièrement reconstruit dans `gruissan-configuration-merged.yaml` à partir de cette table validée (29 capteurs + 1 binary_sensor « Reseau Connecte »), avec `swap: word` sur les 4 compteurs 32 bits et correction des deux champs Total Grid Import/Export
-- [ ] Déployer `gruissan-configuration-merged.yaml` (hub `deye` reconstruit) sur l'hôte HA et redémarrer
+- [x] Déployer `gruissan-configuration-merged.yaml` (hub `deye` reconstruit) sur l'hôte HA et redémarrer — fait, mais toutes les entités `DEYE *` restent `unavailable`
+- [x] Nouvelle contention identifiée (13 août 2026) : SolaX Modbus (Growatt, esclave probable 101/`0x65`) poll en continu la même passerelle `.170` que le hub natif `deye` — confirmé par l'analyse des trames brutes du log (464 lignes de trafic esclave 101, zéro réponse esclave 4). Solarman/Solarmodbus bien absents cette fois, donc nouvelle cause distincte de celle du 12-13 août.
+- [ ] Choisir et mettre en œuvre une option d'arbitrage du bus (voir « Options de correction » ci-dessus : proxy Modbus sérialisant / migration Growatt vers `modbus:` natif / deuxième bus physique dédié)
 - [ ] Vérifier les nouvelles entités `DEYE *` contre l'écran/l'appli de l'onduleur (SOC, tension batterie en priorité)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
@@ -241,6 +271,10 @@ Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, do
 - Leur doc de dépannage décrit noir sur blanc notre symptôme (« values landing on the wrong sensor, shifted by one », causé par des requêtes Modbus trop rapprochées sur un bus RS485 lent) — cause probable des deux échecs précédents (Solarmodbus ET premier essai natif), indépendamment des adresses de registres.
 - Hub `deye` reconstruit intégralement à partir de cette table (29 capteurs + 1 binary_sensor), `swap: word` sur les 4 compteurs 32 bits, `message_wait_milliseconds: 100` ajouté pour espacer les requêtes.
 - Archive complète (README, registres, câblage, dépannage de ce dépôt) sauvegardée dans `deye-register-spec.md` — pas la doc officielle Deye (fabricant et moteurs de recherche inaccessibles depuis cette session), mais une source validée sur le matériel exact.
+- Hub `deye` déployé, HA redémarré : toutes les entités `DEYE *` affichées `unavailable` dans Outils de développement → États.
+- Log frais analysé après confirmation (capture d'écran) que Solarman/Solarmodbus sont bien absents des intégrations actives. Solarman/Solarmodbus effectivement hors de cause cette fois. Mais le hub natif `deye` échoue en totalité (timeouts sur presque toutes les adresses), avec une nouvelle erreur `request ask for id=4 but got id=1, Skipping.`
+- Analyse des trames brutes (`send:`/`recv:` en hexa dans le log pymodbus) : 464 lignes de trafic continu vers l'esclave `0x65` (101 décimal) sur toute la durée du log, aucune réponse de l'esclave `4` nulle part. Cohérent avec SolaX Modbus (Growatt), confirmé actif dans la liste des intégrations (« SolaX Inverter Modbus »), qui monopolise le bus RS485 partagé de la passerelle `.170`.
+- Nouvelle contention confirmée, cette fois entre SolaX Modbus (Growatt, en production, ne doit pas être supprimé) et le hub `deye`. Trois options de correction documentées (proxy Modbus sérialisant / migration Growatt vers `modbus:` natif / deuxième bus physique dédié) — décision à prendre avec l'utilisateur avant de continuer.
 
 ---
 
