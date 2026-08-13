@@ -141,6 +141,27 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 3. **Supprimer puis recréer l'intégration Solarmodbus** (pas un simple reload) avec les mêmes paramètres (host `192.168.1.170`, port `502`, slave_id `4`, modèle `deye_hybrid`).
 4. **Si `NoneType has no attribute 'recv'` persiste** malgré l'absence de Solarman et le timeout augmenté : probable bug du coordinator de `comdif/ha-solarmodbus` (projet jeune, peu testé) — se replier sur l'intégration `modbus:` native de HA (registres à extraire de la doc Modbus publique Deye), comme prévu en réserve.
 
+## Pivot vers `modbus:` natif (13 août 2026)
+
+### Constat
+
+Une fois la contention Solarman résolue, l'entrée Solarmodbus se crée sans erreur, mais **les valeurs lues sont physiquement aberrantes** (SOC batterie à 0 % dans HA contre 69 % réel sur l'écran DEYE, tension batterie à 0 V, températures à 400 °C / -100 °C, énergies journalières à plusieurs milliers de kWh pour un onduleur 6 kW).
+
+En comparant `custom_components/solarmodbus/inverter_definitions/deye_hybrid.yaml` (fourni par l'utilisateur) aux adresses de registres généralement documentées pour les onduleurs hybrides Deye, les adresses elles-mêmes (SOC à `0x00B8`, tension batterie à `0x00B7`, etc.) semblent correctes. Toutes les valeurs fausses proviennent de registres situés dans le **deuxième bloc de lecture groupée** du projet (`0x0096`-`0x00F9`, 100 registres en une seule requête Modbus) — ce qui pointe vers un **bug de découpage/indexation** dans le code de l'intégration au moment de retranscrire ce bloc en valeurs individuelles, pas vers une table de registres fausse.
+
+### Décision
+
+Plutôt que de dépendre d'un correctif dans un projet jeune et peu testé, **construction directe de la même lecture via l'intégration `modbus:` native de HA**, en reprenant telles quelles les adresses de `deye_hybrid.yaml` (converties de hexadécimal en décimal). Ça évite complètement le bug de `comdif/ha-solarmodbus` puisque HA lit et décode les registres lui-même, sans passer par son code.
+
+Fichier complet mis à jour : [`gruissan-configuration-merged.yaml`](./gruissan-configuration-merged.yaml) — nouveau hub `modbus:` nommé `deye` (type `tcp`, host `192.168.1.170`, port `502`) ajouté **dans la clé `modbus:` existante**, juste après le hub `hoymiles`, avec 32 capteurs couvrant le solaire, la batterie, le réseau, la charge et l'état onduleur. Diff vérifié : uniquement des ajouts (352 lignes), rien de supprimé ni modifié ailleurs.
+
+### Points à vérifier après déploiement
+
+- **Champs 32 bits (`Production Totale`, `Batterie Charge/Décharge Totale`, `Energie Vendue Totale`)** : l'ordre des mots (word order) entre les deux registres de chaque paire n'est pas confirmé. Si une valeur totale semble absurde (proche de 0 ou énorme), ajouter `swap: word` au capteur concerné.
+- **`DEYE Statut Fonctionnement (code)`** et **`DEYE Statut Reseau (code)`** : exposés en code numérique brut (0-4 et 0-1 respectivement), pas encore traduits en texte. Table de correspondance en commentaire dans le fichier ; à transformer en template sensor si besoin d'un texte lisible.
+- **`Total Energy Bought`** de la définition d'origine a été exclu : ses deux registres (`0x004E`, `0x0050`) ne sont pas consécutifs dans le fichier source (ça saute `0x004F` = Grid Frequency), ce qui sent l'erreur dans le fichier d'origine — pas assez fiable pour être repris tel quel.
+- **⚠️ Contention potentielle** : une fois `modbus:` natif validé, **désinstaller/désactiver l'intégration Solarmodbus** (Réglages → Appareils et services → Solarmodbus → ⋮ → Supprimer) — sinon on recrée exactement le même problème de contention RS485 qui a bloqué Solarman/Solarmodbus au début, cette fois entre `modbus:` natif et Solarmodbus.
+
 ## Checklist
 
 - [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
@@ -155,7 +176,12 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 - [x] Augmenter le timeout Modbus de la passerelle (200 ms → 1000 ms) — confirmé le 13 août 2026 sur l'onglet RS485
 - [x] Recréer proprement l'intégration Solarmodbus — **succès le 13 août 2026**, entrée « Solarmodbus Device » créée, plus d'erreur de setup. Confirme que la contention avec Solarman était bien la cause du blocage initial.
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
-- [ ] **Nouveau problème** : plusieurs valeurs d'entités semblent aberrantes (AC Temperature 400°C, Battery Temperature -100°C, Battery Voltage 0V avec Battery Current 0.40A, Daily Energy Sold 5000 kWh/jour, Daily Battery Charge 630 kWh/jour — physiquement impossibles pour un onduleur 6 kW). Symptôme probable d'un décalage entre le profil générique `deye_hybrid` du projet et la table de registres réelle du SUN-6K-SG05LP1-EU-AM2-P. À comparer avec l'écran/l'appli DEYE pour confirmer, puis creuser côté registres (voir section Dépannage à compléter).
+- [x] Diagnostic des valeurs aberrantes confirmé : SOC HA à 0 % contre 69 % réel — bug de découpage du bloc de registres côté `comdif/ha-solarmodbus`, pas une table de registres fausse
+- [x] Hub `modbus:` natif « deye » construit dans `gruissan-configuration-merged.yaml` (32 capteurs, adresses reprises de `deye_hybrid.yaml`) — validé par parseur YAML, diff = ajouts uniquement
+- [ ] Déployer `gruissan-configuration-merged.yaml` sur l'hôte HA et redémarrer
+- [ ] Vérifier les nouvelles entités `DEYE *` contre l'écran/l'appli de l'onduleur (SOC, tension batterie en priorité)
+- [ ] Ajuster `swap: word` sur les capteurs 32 bits si les totaux semblent faux
+- [ ] Supprimer l'intégration Solarmodbus une fois `modbus:` natif validé (éviter la contention RS485, même cause que le problème Solarman initial)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
 ## Références
@@ -182,6 +208,9 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 - Tentative de log frais renvoyée deux fois identique (même hash) avant qu'un vrai nouveau log confirme que Solarman tournait toujours (`Deye Gruissan` en retry jusqu'à 600s) au moment de l'échec Solarmodbus — la suppression n'avait pas encore été effective.
 - Solarman confirmé supprimé de la liste des intégrations, HA redémarré, Solarmodbus recréé : **setup réussi, plus d'erreur**. Diagnostic de contention confirmé.
 - Nouveau problème constaté : valeurs d'entités physiquement aberrantes (températures 400°C / -100°C, tension batterie à 0V avec courant non nul, énergies journalières à 5000/630 kWh pour un onduleur 6 kW) — probable décalage de registres entre le profil `deye_hybrid` générique et le modèle réel. À vérifier contre l'écran/l'appli DEYE.
+- SOC réel confirmé à 69 % (écran/appli DEYE) contre 0 % dans HA — écart confirmé, pas un arrondi.
+- Fichier `deye_hybrid.yaml` du projet fourni et analysé : adresses de registres cohérentes avec la doc Deye généralement citée, mais toutes les valeurs fausses tombent dans le même bloc de lecture groupée (100 registres en une requête) — bug de découpage côté `comdif/ha-solarmodbus`, pas une table de registres erronée.
+- Pivot décidé : construction d'un hub `modbus:` natif HA (« deye », 32 capteurs) directement à partir des adresses de `deye_hybrid.yaml`, dans `gruissan-configuration-merged.yaml`. Contourne le bug sans dépendre du projet tiers.
 
 ---
 
