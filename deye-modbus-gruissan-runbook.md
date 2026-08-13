@@ -150,12 +150,12 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 - [x] ID Modbus de l'onduleur DEYE réglé sur **4**
 - [x] Onduleur démarré et raccordé à la passerelle USR `192.168.1.170`
 - [x] `comdif/ha-solarmodbus` installé dans `custom_components` (12/13 août 2026)
-- [x] Intégration ajoutée via l'UI (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`) — mais échec au premier refresh, voir « Dépannage » ci-dessus
-- [ ] Supprimer l'intégration Solarman (contention sur le bus RS485)
+- [x] Intégration ajoutée via l'UI (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`) — échec au premier refresh, voir « Dépannage » ci-dessus
+- [x] Supprimer l'intégration Solarman (contention sur le bus RS485) — confirmé absente le 13 août 2026, HA redémarré ensuite
 - [x] Augmenter le timeout Modbus de la passerelle (200 ms → 1000 ms) — confirmé le 13 août 2026 sur l'onglet RS485
-- [ ] Recréer proprement l'intégration Solarmodbus et vérifier
+- [x] Recréer proprement l'intégration Solarmodbus — **succès le 13 août 2026**, entrée « Solarmodbus Device » créée, plus d'erreur de setup. Confirme que la contention avec Solarman était bien la cause du blocage initial.
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
-- [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
+- [ ] **Nouveau problème** : plusieurs valeurs d'entités semblent aberrantes (AC Temperature 400°C, Battery Temperature -100°C, Battery Voltage 0V avec Battery Current 0.40A, Daily Energy Sold 5000 kWh/jour, Daily Battery Charge 630 kWh/jour — physiquement impossibles pour un onduleur 6 kW). Symptôme probable d'un décalage entre le profil générique `deye_hybrid` du projet et la table de registres réelle du SUN-6K-SG05LP1-EU-AM2-P. À comparer avec l'écran/l'appli DEYE pour confirmer, puis creuser côté registres (voir section Dépannage à compléter).
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
 ## Références
@@ -179,6 +179,9 @@ Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement 
 ### 12-13 août 2026
 - `comdif/ha-solarmodbus` installé et intégration ajoutée, mais échec au premier refresh (« Unknown error occurred » puis, dans les logs, timeout suivi de `'NoneType' object has no attribute 'recv'`).
 - Diagnostic : l'intégration `Solarman` (écartée dès le départ) était restée active en parallèle et contend probablement pour le même bus RS485 half-duplex — voir section « Dépannage ». Plan : supprimer Solarman, augmenter le timeout Modbus de la passerelle à 1000 ms, recréer proprement l'entrée Solarmodbus.
+- Tentative de log frais renvoyée deux fois identique (même hash) avant qu'un vrai nouveau log confirme que Solarman tournait toujours (`Deye Gruissan` en retry jusqu'à 600s) au moment de l'échec Solarmodbus — la suppression n'avait pas encore été effective.
+- Solarman confirmé supprimé de la liste des intégrations, HA redémarré, Solarmodbus recréé : **setup réussi, plus d'erreur**. Diagnostic de contention confirmé.
+- Nouveau problème constaté : valeurs d'entités physiquement aberrantes (températures 400°C / -100°C, tension batterie à 0V avec courant non nul, énergies journalières à 5000/630 kWh pour un onduleur 6 kW) — probable décalage de registres entre le profil `deye_hybrid` générique et le modèle réel. À vérifier contre l'écran/l'appli DEYE.
 
 ---
 
