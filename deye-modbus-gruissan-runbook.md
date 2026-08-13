@@ -196,16 +196,19 @@ Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, do
 - [x] Hub `modbus:` natif « deye » construit dans `gruissan-configuration-merged.yaml` (32 capteurs, adresses reprises de `deye_hybrid.yaml`) — validé par parseur YAML, diff = ajouts uniquement
 - [x] Testé `deye_hybrid-patched.yaml` (blocs de 25 registres) avec Solarmodbus seul, sans contention — **valeurs identiques à l'échec initial au chiffre près**, hypothèse « lecture RS485 trop large » écartée
 - [x] **Décision finale** : abandon de `comdif/ha-solarmodbus` (bug interne, pas une histoire de registres ni de taille de bloc), `modbus:` natif retenu comme solution définitive. Hub `deye` réactivé dans `gruissan-configuration-merged.yaml`.
-- [ ] **Supprimer complètement l'intégration Solarmodbus** (Réglages → Appareils et services → ⋮ → Supprimer), redémarrer HA, et vérifier dans les logs qu'aucune ligne `solarmodbus` n'apparaît au démarrage — condition nécessaire avant de tester le natif proprement
-- [ ] Déployer `gruissan-configuration-merged.yaml` (hub `deye` réactivé) sur l'hôte HA et redémarrer
+- [x] **Supprimer complètement l'intégration Solarmodbus** — testé le 13 août, confirmé retiré
+- [x] Table de registres validée trouvée : `VMrenato/homeassistant-deye-tcan485-esphome`, testée sur un SUN-6K-SG05LP1-EU-AM2-P réel identique au nôtre. Confirme la plupart des adresses de `deye_hybrid.yaml`, mais corrige `Total Grid Import`/`Total Grid Export` (registres simples 78/81, pas des paires 32 bits) et confirme l'ordre **mot faible d'abord** pour les compteurs 32 bits.
+- [x] Cause probable identifiée dans leur doc de dépannage : requêtes Modbus trop rapprochées pour un bus RS485 lent (9600 bauds) font atterrir les valeurs sur le mauvais capteur — symptôme identique au nôtre. Ajout de `message_wait_milliseconds: 100` au hub pour espacer les requêtes.
+- [x] Hub `deye` entièrement reconstruit dans `gruissan-configuration-merged.yaml` à partir de cette table validée (29 capteurs + 1 binary_sensor « Reseau Connecte »), avec `swap: word` sur les 4 compteurs 32 bits et correction des deux champs Total Grid Import/Export
+- [ ] Déployer `gruissan-configuration-merged.yaml` (hub `deye` reconstruit) sur l'hôte HA et redémarrer
 - [ ] Vérifier les nouvelles entités `DEYE *` contre l'écran/l'appli de l'onduleur (SOC, tension batterie en priorité)
-- [ ] Ajuster `swap: word` sur les capteurs 32 bits si les totaux semblent faux
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
 ## Références
 
-- Dépôt : `github.com/comdif/ha-solarmodbus`
-- Doc de configuration (PDF fourni dans le dépôt) : `solarmodbus.pdf` — utilise le Deye SG05LP1-EU-SM2-P comme modèle de référence pour tout le guide de câblage et configuration.
+- Dépôt intégration abandonnée : `github.com/comdif/ha-solarmodbus`
+- **Table de registres retenue** : `github.com/VMrenato/homeassistant-deye-tcan485-esphome` (MIT), validée sur un SUN-6K-SG05LP1-EU-AM2-P réel — voir `deye-register-spec.md` dans ce dépôt (archive complète : README, registres, câblage, dépannage). Elle-même dérivée de `StephanJoubert/home_assistant_solarman` (`deye_hybrid.yaml`) et recroisée avec `slipx06/Sunsynk-Home-Assistant-Dash`.
+- Pas de documentation officielle Deye consultée — deyeinverter.com et les moteurs de recherche généralistes sont inaccessibles depuis cette session.
 
 ## Journal
 
@@ -233,6 +236,11 @@ Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, do
 - Premier test des deux en même temps (natif + Solarmodbus reconfiguré après redémarrage) : échec total des deux côtés (`No response received after 3 retries` sur toutes les adresses natives, même bug `NoneType`/`recv` côté Solarmodbus) — contention confirmée une deuxième fois. Hub `deye` commenté temporairement pour isoler le test.
 - Test isolé de `deye_hybrid-patched.yaml` avec Solarmodbus seul (natif désactivé) : **valeurs identiques au chiffre près à l'échec initial**. Hypothèse « lecture RS485 trop large » écartée — bug interne à `comdif/ha-solarmodbus`, indépendant de la taille des blocs.
 - **Décision finale** : abandon de `comdif/ha-solarmodbus`, `modbus:` natif retenu comme solution définitive (pas seulement une réserve). Hub `deye` réactivé dans `gruissan-configuration-merged.yaml`. Prochaine étape : supprimer Solarmodbus pour de bon, déployer, redémarrer, vérifier les entités `DEYE *`.
+
+- Recherche d'une table de registres validée : trouvé `VMrenato/homeassistant-deye-tcan485-esphome`, testé sur un SUN-6K-SG05LP1-EU-AM2-P réel (notre modèle exact). Confirme la plupart des adresses de `deye_hybrid.yaml`, corrige `Total Grid Import`/`Total Grid Export` (registres simples 78/81, à tort combinés en 32 bits), confirme l'ordre mot faible d'abord pour les compteurs 32 bits.
+- Leur doc de dépannage décrit noir sur blanc notre symptôme (« values landing on the wrong sensor, shifted by one », causé par des requêtes Modbus trop rapprochées sur un bus RS485 lent) — cause probable des deux échecs précédents (Solarmodbus ET premier essai natif), indépendamment des adresses de registres.
+- Hub `deye` reconstruit intégralement à partir de cette table (29 capteurs + 1 binary_sensor), `swap: word` sur les 4 compteurs 32 bits, `message_wait_milliseconds: 100` ajouté pour espacer les requêtes.
+- Archive complète (README, registres, câblage, dépannage de ce dépôt) sauvegardée dans `deye-register-spec.md` — pas la doc officielle Deye (fabricant et moteurs de recherche inaccessibles depuis cette session), mais une source validée sur le matériel exact.
 
 ---
 
