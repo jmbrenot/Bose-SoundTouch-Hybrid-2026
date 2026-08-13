@@ -115,6 +115,32 @@ Entièrement via l'UI, pas de YAML :
    - `model` : **`deye_hybrid`**
 5. Envoyer — les entités apparaissent automatiquement.
 
+## Dépannage — erreur au premier démarrage (12-13 août 2026)
+
+### Symptômes
+
+- Écran de config Solarmodbus : « Unknown error occurred » (générique, pas exploitable seul).
+- `nc -zv 192.168.1.170 502` → **open** : le réseau et la passerelle sont OK, le problème est plus haut dans la pile.
+- Log HA (`config/system_log`, filtré sur `solarmodbus`) :
+  - `WARNING [homeassistant.util.loop] Detected blocking call to listdir ... custom_components/solarmodbus/config_flow.py, line 46` — bug de qualité du code (appel bloquant `os.listdir` dans une coroutine async), signalé à l'auteur du composant mais pas forcément la cause de l'échec final.
+  - `ERROR [homeassistant.config_entries] Setup of config entry 'Solarmodbus TCP (192.168.1.170)' ... cancelled` → traceback se terminant par `asyncio.exceptions.CancelledError` pendant `coordinator.py:130 _async_update_data`, c'est-à-dire un **timeout** lors du tout premier rafraîchissement de données.
+  - Juste après : `[custom_components.solarmodbus.coordinator] Exception reading block 192-192: 'NoneType' object has no attribute 'recv'` — le client Modbus TCP interne est `None`/déconnecté au moment de lire, cohérent avec une connexion coupée après le timeout précédent.
+
+### Cause probable : deux intégrations sur le même bus RS485 en même temps
+
+Le log montre que **l'intégration `Solarman` (StephanJoubert, celle écartée dès le départ) était encore active en parallèle**, avec sa propre entrée de config (`Deye Gruissan`) qui échoue elle aussi : `[custom_components.solarman] ... 'NoneType' object has no attribute 'parser'; Retrying in 600 seconds`.
+
+RS485 est half-duplex : un seul maître Modbus peut parler au bus à la fois. Deux intégrations qui pollent le même onduleur via la même passerelle en même temps peuvent se percuter et provoquer exactement ce type d'erreurs de connexion qui semblent aléatoires.
+
+Timeout de la passerelle (`Response Timeout: 200 ms` sur Socket A) probablement trop court pour un aller-retour RS485 à 9600 bauds sur un bloc de registres, encore plus avec de la contention sur le bus.
+
+### Plan de résolution
+
+1. **Supprimer complètement l'intégration Solarman** (Réglages → Appareils et services → carte Solarman → ⋮ → Supprimer) — elle ne doit pas rester active, elle a été écartée dès le départ et contend pour le même bus.
+2. **Augmenter le timeout Modbus de la passerelle** : onglet RS485 → Socket A → `Response Timeout` `200` → `1000` ms.
+3. **Supprimer puis recréer l'intégration Solarmodbus** (pas un simple reload) avec les mêmes paramètres (host `192.168.1.170`, port `502`, slave_id `4`, modèle `deye_hybrid`).
+4. **Si `NoneType has no attribute 'recv'` persiste** malgré l'absence de Solarman et le timeout augmenté : probable bug du coordinator de `comdif/ha-solarmodbus` (projet jeune, peu testé) — se replier sur l'intégration `modbus:` native de HA (registres à extraire de la doc Modbus publique Deye), comme prévu en réserve.
+
 ## Checklist
 
 - [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
@@ -123,9 +149,12 @@ Entièrement via l'UI, pas de YAML :
 - [x] Onduleur câblé → passerelle (A/B)
 - [x] ID Modbus de l'onduleur DEYE réglé sur **4**
 - [x] Onduleur démarré et raccordé à la passerelle USR `192.168.1.170`
+- [x] `comdif/ha-solarmodbus` installé dans `custom_components` (12/13 août 2026)
+- [x] Intégration ajoutée via l'UI (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`) — mais échec au premier refresh, voir « Dépannage » ci-dessus
+- [ ] Supprimer l'intégration Solarman (contention sur le bus RS485)
+- [ ] Augmenter le timeout Modbus de la passerelle (200 ms → 1000 ms)
+- [ ] Recréer proprement l'intégration Solarmodbus et vérifier
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
-- [ ] Installer `comdif/ha-solarmodbus` dans `custom_components`
-- [ ] Ajouter l'intégration via l'UI (mode TCP, host `192.168.1.170`, port 502, slave_id **4**, modèle `deye_hybrid`)
 - [ ] Vérifier que les entités créées correspondent à des valeurs cohérentes (SOC, puissance, tension réseau, etc.)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
@@ -146,6 +175,10 @@ Entièrement via l'UI, pas de YAML :
 ### 11 août 2026
 - Étapes 1 à 5 de la checklist Jour J faites : onduleur DEYE câblé, démarré, ID Modbus réglé sur `4`, raccordé à la passerelle USR-TCP232-410S (`192.168.1.170`).
 - Reste : confirmer l'IP fixe côté passerelle/routeur, installer `comdif/ha-solarmodbus`, ajouter l'intégration côté HA (host `192.168.1.170`, port 502, slave_id 4, modèle `deye_hybrid`), puis vérifier les entités.
+
+### 12-13 août 2026
+- `comdif/ha-solarmodbus` installé et intégration ajoutée, mais échec au premier refresh (« Unknown error occurred » puis, dans les logs, timeout suivi de `'NoneType' object has no attribute 'recv'`).
+- Diagnostic : l'intégration `Solarman` (écartée dès le départ) était restée active en parallèle et contend probablement pour le même bus RS485 half-duplex — voir section « Dépannage ». Plan : supprimer Solarman, augmenter le timeout Modbus de la passerelle à 1000 ms, recréer proprement l'entrée Solarmodbus.
 
 ---
 
