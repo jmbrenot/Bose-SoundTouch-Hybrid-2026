@@ -170,6 +170,14 @@ Fichier prêt à déposer : [`deye_hybrid-patched.yaml`](./deye_hybrid-patched.y
 
 Si ça corrige les valeurs : garder Solarmodbus, supprimer le hub `modbus:` natif ajouté en secours (redondant). Si ça ne suffit pas : le `modbus:` natif déjà en place reste la solution de repli, il suffit de retirer Solarmodbus.
 
+### Résultat (13 août 2026) : le patch ne corrige rien
+
+Testé avec Solarmodbus seul (hub `modbus:` natif désactivé temporairement, donc pas de contention possible cette fois). Les valeurs sont restées **identiques au chiffre près** à l'échec initial (Battery SOC 0 %, Battery Voltage 0 V, Battery Temperature -100,0 °C, AC Temperature 400,0 °C, Daily Battery Charge 630,10 kWh, Daily Energy Sold 5000,00 kWh).
+
+Ça élimine l'hypothèse « lecture RS485 trop large corrompue » : le découpage en blocs de 25 registres n'a rien changé, donc ce n'est pas une question de taille de requête. C'est un vrai bug dans le code de `comdif/ha-solarmodbus` (probablement dans `coordinator.py`, pas dans les définitions YAML), indépendant de la façon dont les registres sont regroupés pour la lecture. Pas creusé plus loin — projet jeune, peu de retour sur investissement à continuer à patcher à l'aveugle sans le code source du coordinator.
+
+**Décision finale : abandon de `comdif/ha-solarmodbus`, le `modbus:` natif devient la solution retenue**, pas juste une solution de repli. Le hub `deye` a été réactivé dans `gruissan-configuration-merged.yaml` (commit `44a9e23`).
+
 ## Checklist
 
 - [x] Passerelle identifiée : USR-TCP232-410S, IP `192.168.1.170` (confirmé le 10 août 2026)
@@ -186,10 +194,12 @@ Si ça corrige les valeurs : garder Solarmodbus, supprimer le hub `modbus:` nati
 - [ ] Fixer l'IP de la passerelle (`192.168.1.170`) côté routeur/DHCP pour éviter qu'elle change (à confirmer — pas explicitement vérifié)
 - [x] Diagnostic des valeurs aberrantes confirmé : SOC HA à 0 % contre 69 % réel — bug de découpage du bloc de registres côté `comdif/ha-solarmodbus`, pas une table de registres fausse
 - [x] Hub `modbus:` natif « deye » construit dans `gruissan-configuration-merged.yaml` (32 capteurs, adresses reprises de `deye_hybrid.yaml`) — validé par parseur YAML, diff = ajouts uniquement
-- [ ] Déployer `gruissan-configuration-merged.yaml` sur l'hôte HA et redémarrer
+- [x] Testé `deye_hybrid-patched.yaml` (blocs de 25 registres) avec Solarmodbus seul, sans contention — **valeurs identiques à l'échec initial au chiffre près**, hypothèse « lecture RS485 trop large » écartée
+- [x] **Décision finale** : abandon de `comdif/ha-solarmodbus` (bug interne, pas une histoire de registres ni de taille de bloc), `modbus:` natif retenu comme solution définitive. Hub `deye` réactivé dans `gruissan-configuration-merged.yaml`.
+- [ ] **Supprimer complètement l'intégration Solarmodbus** (Réglages → Appareils et services → ⋮ → Supprimer), redémarrer HA, et vérifier dans les logs qu'aucune ligne `solarmodbus` n'apparaît au démarrage — condition nécessaire avant de tester le natif proprement
+- [ ] Déployer `gruissan-configuration-merged.yaml` (hub `deye` réactivé) sur l'hôte HA et redémarrer
 - [ ] Vérifier les nouvelles entités `DEYE *` contre l'écran/l'appli de l'onduleur (SOC, tension batterie en priorité)
 - [ ] Ajuster `swap: word` sur les capteurs 32 bits si les totaux semblent faux
-- [ ] Supprimer l'intégration Solarmodbus une fois `modbus:` natif validé (éviter la contention RS485, même cause que le problème Solarman initial)
 - [ ] Une fois validé : ajouter les badges de statut ONDULEUR sur le synoptique Kilovac (voir `kilovac-batterie-gruissan-runbook.md`, checklist item 9)
 
 ## Références
@@ -220,6 +230,9 @@ Si ça corrige les valeurs : garder Solarmodbus, supprimer le hub `modbus:` nati
 - Fichier `deye_hybrid.yaml` du projet fourni et analysé : adresses de registres cohérentes avec la doc Deye généralement citée, mais toutes les valeurs fausses tombent dans le même bloc de lecture groupée (100 registres en une requête) — bug de découpage côté `comdif/ha-solarmodbus`, pas une table de registres erronée.
 - Pivot décidé : construction d'un hub `modbus:` natif HA (« deye », 32 capteurs) directement à partir des adresses de `deye_hybrid.yaml`, dans `gruissan-configuration-merged.yaml`. Contourne le bug sans dépendre du projet tiers.
 - Alternative testée en parallèle : `deye_hybrid-patched.yaml` découpant le bloc de 100 registres fautif en 4 blocs de 25, sur l'hypothèse d'une lecture RS485 trop large plutôt qu'un bug Python — moins de duplication si ça fonctionne, garde l'organisation par appareil de Solarmodbus.
+- Premier test des deux en même temps (natif + Solarmodbus reconfiguré après redémarrage) : échec total des deux côtés (`No response received after 3 retries` sur toutes les adresses natives, même bug `NoneType`/`recv` côté Solarmodbus) — contention confirmée une deuxième fois. Hub `deye` commenté temporairement pour isoler le test.
+- Test isolé de `deye_hybrid-patched.yaml` avec Solarmodbus seul (natif désactivé) : **valeurs identiques au chiffre près à l'échec initial**. Hypothèse « lecture RS485 trop large » écartée — bug interne à `comdif/ha-solarmodbus`, indépendant de la taille des blocs.
+- **Décision finale** : abandon de `comdif/ha-solarmodbus`, `modbus:` natif retenu comme solution définitive (pas seulement une réserve). Hub `deye` réactivé dans `gruissan-configuration-merged.yaml`. Prochaine étape : supprimer Solarmodbus pour de bon, déployer, redémarrer, vérifier les entités `DEYE *`.
 
 ---
 
