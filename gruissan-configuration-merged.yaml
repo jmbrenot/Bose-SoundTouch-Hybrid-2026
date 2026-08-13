@@ -364,351 +364,351 @@ modbus:
   # Champs 32 bits (Total *) : ordre des mots non confirme, verifier contre l'ecran/l'appli
   # DEYE si la valeur semble fausse (ajouter swap: word si besoin).
   # =====================================
-  - name: deye
-    type: tcp
-    host: 192.168.1.170
-    port: 502
-    delay: 2
-    timeout: 5
+  #   - name: deye
+  #     type: tcp
+  #     host: 192.168.1.170
+  #     port: 502
+  #     delay: 2
+  #     timeout: 5
 
-    sensors:
+  #     sensors:
 
-      # =====================================
-      # SOLAIRE
-      # =====================================
+  #       # =====================================
+  #       # SOLAIRE
+  #       # =====================================
 
-      - name: "DEYE PV1 Puissance"
-        slave: 4
-        address: 186
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE PV1 Puissance"
+  #         slave: 4
+  #         address: 186
+  #         input_type: holding
+  #         data_type: uint16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE PV2 Puissance"
-        slave: 4
-        address: 187
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE PV2 Puissance"
+  #         slave: 4
+  #         address: 187
+  #         input_type: holding
+  #         data_type: uint16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE PV1 Tension"
-        slave: 4
-        address: 109
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "V"
-        device_class: voltage
+  #       - name: "DEYE PV1 Tension"
+  #         slave: 4
+  #         address: 109
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "V"
+  #         device_class: voltage
 
-      - name: "DEYE PV2 Tension"
-        slave: 4
-        address: 111
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "V"
-        device_class: voltage
+  #       - name: "DEYE PV2 Tension"
+  #         slave: 4
+  #         address: 111
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "V"
+  #         device_class: voltage
 
-      - name: "DEYE PV1 Courant"
-        slave: 4
-        address: 110
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "A"
-        device_class: current
+  #       - name: "DEYE PV1 Courant"
+  #         slave: 4
+  #         address: 110
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "A"
+  #         device_class: current
 
-      - name: "DEYE PV2 Courant"
-        slave: 4
-        address: 112
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "A"
-        device_class: current
+  #       - name: "DEYE PV2 Courant"
+  #         slave: 4
+  #         address: 112
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "A"
+  #         device_class: current
 
-      - name: "DEYE Production Jour"
-        slave: 4
-        address: 108
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Production Jour"
+  #         slave: 4
+  #         address: 108
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Production Totale"
-        slave: 4
-        address: 96
-        input_type: holding
-        data_type: uint32
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Production Totale"
+  #         slave: 4
+  #         address: 96
+  #         input_type: holding
+  #         data_type: uint32
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      # =====================================
-      # BATTERIE
-      # =====================================
+  #       # =====================================
+  #       # BATTERIE
+  #       # =====================================
 
-      - name: "DEYE Batterie SOC"
-        slave: 4
-        address: 184
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "%"
-        device_class: battery
-        state_class: measurement
+  #       - name: "DEYE Batterie SOC"
+  #         slave: 4
+  #         address: 184
+  #         input_type: holding
+  #         data_type: uint16
+  #         unit_of_measurement: "%"
+  #         device_class: battery
+  #         state_class: measurement
 
-      - name: "DEYE Batterie Tension"
-        slave: 4
-        address: 183
-        input_type: holding
-        data_type: uint16
-        scale: 0.01
-        precision: 2
-        unit_of_measurement: "V"
-        device_class: voltage
+  #       - name: "DEYE Batterie Tension"
+  #         slave: 4
+  #         address: 183
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.01
+  #         precision: 2
+  #         unit_of_measurement: "V"
+  #         device_class: voltage
 
-      - name: "DEYE Batterie Courant"
-        slave: 4
-        address: 191
-        input_type: holding
-        data_type: int16
-        scale: 0.01
-        precision: 2
-        unit_of_measurement: "A"
-        device_class: current
+  #       - name: "DEYE Batterie Courant"
+  #         slave: 4
+  #         address: 191
+  #         input_type: holding
+  #         data_type: int16
+  #         scale: 0.01
+  #         precision: 2
+  #         unit_of_measurement: "A"
+  #         device_class: current
 
-      - name: "DEYE Batterie Puissance"
-        slave: 4
-        address: 190
-        input_type: holding
-        data_type: int16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE Batterie Puissance"
+  #         slave: 4
+  #         address: 190
+  #         input_type: holding
+  #         data_type: int16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE Batterie Temperature"
-        slave: 4
-        address: 182
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        offset: -100
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
+  #       - name: "DEYE Batterie Temperature"
+  #         slave: 4
+  #         address: 182
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         offset: -100
+  #         precision: 1
+  #         unit_of_measurement: "°C"
+  #         device_class: temperature
 
-      - name: "DEYE Batterie Charge Jour"
-        slave: 4
-        address: 70
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Batterie Charge Jour"
+  #         slave: 4
+  #         address: 70
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Batterie Decharge Jour"
-        slave: 4
-        address: 71
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Batterie Decharge Jour"
+  #         slave: 4
+  #         address: 71
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Batterie Charge Totale"
-        slave: 4
-        address: 72
-        input_type: holding
-        data_type: uint32
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Batterie Charge Totale"
+  #         slave: 4
+  #         address: 72
+  #         input_type: holding
+  #         data_type: uint32
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Batterie Decharge Totale"
-        slave: 4
-        address: 74
-        input_type: holding
-        data_type: uint32
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Batterie Decharge Totale"
+  #         slave: 4
+  #         address: 74
+  #         input_type: holding
+  #         data_type: uint32
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      # =====================================
-      # RESEAU
-      # =====================================
+  #       # =====================================
+  #       # RESEAU
+  #       # =====================================
 
-      - name: "DEYE Reseau Puissance Totale"
-        slave: 4
-        address: 169
-        input_type: holding
-        data_type: int16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE Reseau Puissance Totale"
+  #         slave: 4
+  #         address: 169
+  #         input_type: holding
+  #         data_type: int16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE Reseau Tension L1"
-        slave: 4
-        address: 150
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "V"
-        device_class: voltage
+  #       - name: "DEYE Reseau Tension L1"
+  #         slave: 4
+  #         address: 150
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "V"
+  #         device_class: voltage
 
-      - name: "DEYE Reseau Courant L1"
-        slave: 4
-        address: 160
-        input_type: holding
-        data_type: uint16
-        scale: 0.01
-        precision: 2
-        unit_of_measurement: "A"
-        device_class: current
+  #       - name: "DEYE Reseau Courant L1"
+  #         slave: 4
+  #         address: 160
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.01
+  #         precision: 2
+  #         unit_of_measurement: "A"
+  #         device_class: current
 
-      - name: "DEYE Energie Achetee Jour"
-        slave: 4
-        address: 76
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Energie Achetee Jour"
+  #         slave: 4
+  #         address: 76
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Energie Vendue Jour"
-        slave: 4
-        address: 77
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Energie Vendue Jour"
+  #         slave: 4
+  #         address: 77
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      - name: "DEYE Energie Vendue Totale"
-        slave: 4
-        address: 81
-        input_type: holding
-        data_type: uint32
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Energie Vendue Totale"
+  #         slave: 4
+  #         address: 81
+  #         input_type: holding
+  #         data_type: uint32
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      # =====================================
-      # CHARGE / ONDULEUR
-      # =====================================
+  #       # =====================================
+  #       # CHARGE / ONDULEUR
+  #       # =====================================
 
-      - name: "DEYE Charge Puissance Totale"
-        slave: 4
-        address: 178
-        input_type: holding
-        data_type: uint16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE Charge Puissance Totale"
+  #         slave: 4
+  #         address: 178
+  #         input_type: holding
+  #         data_type: uint16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE Charge Tension"
-        slave: 4
-        address: 157
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "V"
-        device_class: voltage
+  #       - name: "DEYE Charge Tension"
+  #         slave: 4
+  #         address: 157
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "V"
+  #         device_class: voltage
 
-      - name: "DEYE Charge Conso Jour"
-        slave: 4
-        address: 84
-        input_type: holding
-        data_type: uint16
-        scale: 0.1
-        precision: 1
-        unit_of_measurement: "kWh"
-        device_class: energy
-        state_class: total_increasing
+  #       - name: "DEYE Charge Conso Jour"
+  #         slave: 4
+  #         address: 84
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.1
+  #         precision: 1
+  #         unit_of_measurement: "kWh"
+  #         device_class: energy
+  #         state_class: total_increasing
 
-      # Code brut : 0=Stand-by, 1=Self-test, 2=Normal, 3=Alarm, 4=Fault
-      # (interpretation texte a faire via template sensor si besoin)
-      - name: "DEYE Statut Fonctionnement (code)"
-        slave: 4
-        address: 59
-        input_type: holding
-        data_type: uint16
+  #       # Code brut : 0=Stand-by, 1=Self-test, 2=Normal, 3=Alarm, 4=Fault
+  #       # (interpretation texte a faire via template sensor si besoin)
+  #       - name: "DEYE Statut Fonctionnement (code)"
+  #         slave: 4
+  #         address: 59
+  #         input_type: holding
+  #         data_type: uint16
 
-      - name: "DEYE Puissance Totale"
-        slave: 4
-        address: 175
-        input_type: holding
-        data_type: int16
-        unit_of_measurement: "W"
-        device_class: power
-        state_class: measurement
+  #       - name: "DEYE Puissance Totale"
+  #         slave: 4
+  #         address: 175
+  #         input_type: holding
+  #         data_type: int16
+  #         unit_of_measurement: "W"
+  #         device_class: power
+  #         state_class: measurement
 
-      - name: "DEYE Frequence Reseau"
-        slave: 4
-        address: 79
-        input_type: holding
-        data_type: uint16
-        scale: 0.01
-        precision: 2
-        unit_of_measurement: "Hz"
-        device_class: frequency
+  #       - name: "DEYE Frequence Reseau"
+  #         slave: 4
+  #         address: 79
+  #         input_type: holding
+  #         data_type: uint16
+  #         scale: 0.01
+  #         precision: 2
+  #         unit_of_measurement: "Hz"
+  #         device_class: frequency
 
-      - name: "DEYE Onduleur Temperature DC"
-        slave: 4
-        address: 90
-        input_type: holding
-        data_type: int16
-        scale: 0.1
-        offset: -100
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
+  #       - name: "DEYE Onduleur Temperature DC"
+  #         slave: 4
+  #         address: 90
+  #         input_type: holding
+  #         data_type: int16
+  #         scale: 0.1
+  #         offset: -100
+  #         precision: 1
+  #         unit_of_measurement: "°C"
+  #         device_class: temperature
 
-      - name: "DEYE Onduleur Temperature AC"
-        slave: 4
-        address: 91
-        input_type: holding
-        data_type: int16
-        scale: 0.1
-        offset: -100
-        precision: 1
-        unit_of_measurement: "°C"
-        device_class: temperature
+  #       - name: "DEYE Onduleur Temperature AC"
+  #         slave: 4
+  #         address: 91
+  #         input_type: holding
+  #         data_type: int16
+  #         scale: 0.1
+  #         offset: -100
+  #         precision: 1
+  #         unit_of_measurement: "°C"
+  #         device_class: temperature
 
-      # Code brut : 0=Off-Grid, 1=On-Grid
-      - name: "DEYE Statut Reseau (code)"
-        slave: 4
-        address: 194
-        input_type: holding
-        data_type: uint16
+  #       # Code brut : 0=Off-Grid, 1=On-Grid
+  #       - name: "DEYE Statut Reseau (code)"
+  #         slave: 4
+  #         address: 194
+  #         input_type: holding
+  #         data_type: uint16
 sensor:
 
   #################################################################
