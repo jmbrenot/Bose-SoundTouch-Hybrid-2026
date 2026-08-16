@@ -1301,9 +1301,9 @@ template:
         device_class: problem
         state: >
           {% set v = states('sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_total_voltage') | float(999) %}
-          {% set charging_off = is_state('switch.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_charging', 'off') %}
-          {% set discharging_off = is_state('switch.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_discharging', 'off') %}
-          {% set offline = is_state('binary_sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_online_status', 'off') %}
+          {% set charging_off = is_state('binary_sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_charging', 'off') %}
+          {% set discharging_off = is_state('binary_sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_discharging', 'off') %}
+          {% set offline = states('binary_sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_online_status') != 'on' %}
           {{ (v < 40) or charging_off or discharging_off or offline }}
         delay_on:
           minutes: 5
