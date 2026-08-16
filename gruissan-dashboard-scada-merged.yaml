@@ -84,6 +84,9 @@ views:
               - entity: sensor.scada_alerte_erreur_jkbms
                 name: Erreur JKBMS
                 icon: mdi:alert-circle
+              - entity: sensor.scada_alerte_batterie_kilovac_gruissan
+                name: Batterie Kilovac Gruissan
+                icon: mdi:battery-alert
               - entity: sensor.scada_alerte_conso_hors_onduleur
                 name: Conso hors onduleur
                 icon: mdi:home-alert
@@ -234,6 +237,50 @@ views:
                           top: 60%
                           color: '#ffffff'
                           --mdc-icon-size: 25px
+                  - type: conditional
+                    conditions:
+                      - entity: binary_sensor.scada_kilovac_deye_batterie_alerte
+                        state: 'off'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Batterie OK
+                        style:
+                          left: 24%
+                          top: 33%
+                          color: '#18b85a'
+                          --mdc-icon-size: 30px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:check-bold
+                        title: Batterie OK
+                        style:
+                          left: 24%
+                          top: 33%
+                          color: '#ffffff'
+                          --mdc-icon-size: 16px
+                  - type: conditional
+                    conditions:
+                      - entity: binary_sensor.scada_kilovac_deye_batterie_alerte
+                        state: 'on'
+                    elements:
+                      - type: icon
+                        icon: mdi:circle
+                        title: Batterie ALERTE - tension basse ou BMS off persistant
+                        style:
+                          left: 24%
+                          top: 33%
+                          color: '#e53935'
+                          --mdc-icon-size: 30px
+                          filter: drop-shadow(0 2px 4px rgba(0,0,0,.55))
+                      - type: icon
+                        icon: mdi:alert
+                        title: Batterie ALERTE - tension basse ou BMS off persistant
+                        style:
+                          left: 24%
+                          top: 33%
+                          color: '#ffffff'
+                          --mdc-icon-size: 16px
                   - type: conditional
                     conditions:
                       - entity: input_boolean.kilovac_batterie_gruissan_autorisation

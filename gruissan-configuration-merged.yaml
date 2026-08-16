@@ -1122,6 +1122,16 @@ template:
           {% else %}
             OK - conso hors onduleur {{ p | round(0) }} W
           {% endif %}
+
+      - name: "SCADA Alerte Batterie Kilovac Gruissan"
+        unique_id: scada_alerte_batterie_kilovac_gruissan
+        icon: mdi:battery-alert
+        state: >
+          {% if is_state('binary_sensor.scada_kilovac_deye_batterie_alerte', 'on') %}
+            ALERTE - batterie Kilovac Gruissan (tension basse ou BMS off, persistant 5 min)
+          {% else %}
+            OK - batterie Kilovac Gruissan
+          {% endif %}
       - name: "SCADA Etat Mesure EDF"
         unique_id: scada_etat_mesure_edf
         icon: mdi:transmission-tower
@@ -1285,6 +1295,18 @@ template:
         device_class: problem
         state: >
           {{ states('sensor.conso_hors_onduleur_power') | float(0) > 500 }}
+
+      - name: "SCADA Batterie Kilovac Deye Alerte"
+        unique_id: scada_kilovac_deye_batterie_alerte
+        device_class: problem
+        state: >
+          {% set v = states('sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_total_voltage') | float(999) %}
+          {% set charging_off = is_state('switch.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_charging', 'off') %}
+          {% set discharging_off = is_state('switch.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_discharging', 'off') %}
+          {% set offline = is_state('binary_sensor.jkbms_esp32_deye_gruissan_jkbms_esp32_deye_gruissan_online_status', 'off') %}
+          {{ (v < 40) or charging_off or discharging_off or offline }}
+        delay_on:
+          minutes: 5
   - sensor:
       - name: "Gruissan Production PV Totale"
         unique_id: gruissan_production_pv_totale
