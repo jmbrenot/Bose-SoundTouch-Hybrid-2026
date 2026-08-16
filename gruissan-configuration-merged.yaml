@@ -721,7 +721,7 @@ sensor:
   
   - platform: statistics
     name: "JKBMS Growatt Auzeville tension min 24h"
-    entity_id: sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_cell_voltage
+    entity_id: sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_cell_voltage
     state_characteristic: value_min
     max_age:
       hours: 24
@@ -737,7 +737,7 @@ sensor:
   
   - platform: statistics
     name: "JKBMS HYD6000EP tension min 24h"
-    entity_id: sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_cell_voltage
+    entity_id: sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_cell_voltage
     state_characteristic: value_min
     max_age:
       hours: 24
@@ -1612,153 +1612,153 @@ template:
         unique_id: stockage_hist_growatt_auzeville_cellule_min
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_voltage_cell')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_voltage_cell')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_voltage_cell') | int(0) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_voltage_cell') | int(0) }}
       - name: "Stockage hist Growatt Auzeville cellule 01"
         unique_id: stockage_hist_growatt_auzeville_cellule_01
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_1')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_1')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_1') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_1') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 02"
         unique_id: stockage_hist_growatt_auzeville_cellule_02
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_2')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_2')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_2') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_2') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 03"
         unique_id: stockage_hist_growatt_auzeville_cellule_03
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_3')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_3')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_3') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_3') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 04"
         unique_id: stockage_hist_growatt_auzeville_cellule_04
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_4')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_4')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_4') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_4') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 05"
         unique_id: stockage_hist_growatt_auzeville_cellule_05
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_5')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_5')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_5') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_5') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 06"
         unique_id: stockage_hist_growatt_auzeville_cellule_06
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_6')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_6')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_6') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_6') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 07"
         unique_id: stockage_hist_growatt_auzeville_cellule_07
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_7')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_7')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_7') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_7') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 08"
         unique_id: stockage_hist_growatt_auzeville_cellule_08
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_8')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_8')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_8') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_8') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 09"
         unique_id: stockage_hist_growatt_auzeville_cellule_09
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_9')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_9')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_9') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_9') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 10"
         unique_id: stockage_hist_growatt_auzeville_cellule_10
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_10')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_10')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_10') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_10') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 11"
         unique_id: stockage_hist_growatt_auzeville_cellule_11
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_11')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_11')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_11') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_11') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 12"
         unique_id: stockage_hist_growatt_auzeville_cellule_12
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_12')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_12')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_12') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_12') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 13"
         unique_id: stockage_hist_growatt_auzeville_cellule_13
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_13')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_13')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_13') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_13') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 14"
         unique_id: stockage_hist_growatt_auzeville_cellule_14
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_14')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_14')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_14') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_14') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 15"
         unique_id: stockage_hist_growatt_auzeville_cellule_15
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_15')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_15')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_15') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_15') | float(0) | round(3) }}
       - name: "Stockage hist Growatt Auzeville cellule 16"
         unique_id: stockage_hist_growatt_auzeville_cellule_16
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_16')) }}
+          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_16')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_16') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_16') | float(0) | round(3) }}
       - name: "Stockage hist SOFAR Auzeville tension min"
         unique_id: stockage_hist_sofar_auzeville_tension_min
         unit_of_measurement: "V"
@@ -1932,153 +1932,153 @@ template:
         unique_id: stockage_hist_hyd6000ep_cellule_min
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_voltage_cell')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_voltage_cell')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_min_voltage_cell') | int(0) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_min_voltage_cell') | int(0) }}
       - name: "Stockage hist HYD6000EP cellule 01"
         unique_id: stockage_hist_hyd6000ep_cellule_01
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_1')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_1')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_1') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_1') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 02"
         unique_id: stockage_hist_hyd6000ep_cellule_02
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_2')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_2')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_2') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_2') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 03"
         unique_id: stockage_hist_hyd6000ep_cellule_03
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_3')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_3')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_3') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_3') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 04"
         unique_id: stockage_hist_hyd6000ep_cellule_04
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_4')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_4')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_4') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_4') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 05"
         unique_id: stockage_hist_hyd6000ep_cellule_05
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_5')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_5')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_5') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_5') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 06"
         unique_id: stockage_hist_hyd6000ep_cellule_06
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_6')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_6')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_6') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_6') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 07"
         unique_id: stockage_hist_hyd6000ep_cellule_07
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_7')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_7')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_7') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_7') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 08"
         unique_id: stockage_hist_hyd6000ep_cellule_08
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_8')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_8')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_8') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_8') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 09"
         unique_id: stockage_hist_hyd6000ep_cellule_09
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_9')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_9')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_9') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_9') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 10"
         unique_id: stockage_hist_hyd6000ep_cellule_10
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_10')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_10')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_10') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_10') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 11"
         unique_id: stockage_hist_hyd6000ep_cellule_11
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_11')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_11')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_11') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_11') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 12"
         unique_id: stockage_hist_hyd6000ep_cellule_12
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_12')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_12')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_12') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_12') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 13"
         unique_id: stockage_hist_hyd6000ep_cellule_13
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_13')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_13')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_13') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_13') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 14"
         unique_id: stockage_hist_hyd6000ep_cellule_14
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_14')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_14')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_14') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_14') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 15"
         unique_id: stockage_hist_hyd6000ep_cellule_15
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_15')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_15')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_15') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_15') | float(0) | round(3) }}
       - name: "Stockage hist HYD6000EP cellule 16"
         unique_id: stockage_hist_hyd6000ep_cellule_16
         unit_of_measurement: "V"
         device_class: voltage
         state_class: measurement
         availability: >
-          {{ is_number(states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_16')) }}
+          {{ is_number(states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_16')) }}
         state: >
-          {{ states('sensor.jkbms_esp32_hyd6000ep_jkbms_esp32_hyd6000ep_cell_voltage_16') | float(0) | round(3) }}
+          {{ states('sensor.jkbms_esp32_auzeville_jkbms_esp32_auzeville_cell_voltage_16') | float(0) | round(3) }}
   # CODEX JKBMS HISTORIQUES DEDIES - FIN
 
 homeassistant:
